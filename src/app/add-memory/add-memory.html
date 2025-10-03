@@ -111,25 +111,37 @@
                  class="h-14.5 px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white placeholder-white/60 focus:ring-2 focus:ring-pink-400 transition duration-300 outline-none"/>
         </div>
 
-        <!-- File Upload -->
-        <div class="col-span-2 md:col-span-1">
-          <label class="text-white/80 mb-2 block">Attach Document / Image</label>
-          <input type="file" (change)="onFileSelected($event)"
-                 class="w-full text-sm text-white bg-black/40 
-                        border border-white/10 rounded-2xl px-5 py-3 
-                        file:mr-3 file:px-4 file:py-2 file:rounded-xl file:border-none 
-                        file:bg-gradient-to-r file:from-pink-400 file:to-purple-500 
-                        file:text-white file:font-semibold hover:file:scale-105 transition duration-300"/>
-          
-          <!-- Remove chosen document -->
-          <div *ngIf="chosenFile" class="mt-3 flex items-center gap-4">
-            <span class="text-green-400">{{ chosenFile.name }}</span>
-            <button type="button" (click)="removeFile()"
-                    class="px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold transition">
-              🗑 Remove
-            </button>
-          </div>
-        </div>
+  <!-- File Upload -->
+<div class="col-span-2 md:col-span-1">
+  <label class="text-white/80 mb-2 block">Attach Document / Image</label>
+
+  <!-- File input wrapper -->
+  <div class="flex items-center bg-black/40 border border-white/10 rounded-2xl px-4 py-3">
+    <input type="file" (change)="onFileSelected($event)"
+           class="hidden" #fileInput />
+
+    <!-- Choose File button -->
+    <button type="button" (click)="fileInput.click()"
+            class="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-400 to-purple-500 
+                   text-white font-semibold hover:scale-105 transition duration-300">
+      Choose File
+    </button>
+
+    <!-- Show chosen file name + remove -->
+    <div class="flex items-center ml-3 flex-1 overflow-hidden" *ngIf="chosenFile">
+      <span class="truncate text-sm text-white/80">{{ chosenFile.name }}</span>
+      <button type="button" (click)="removeFile()" 
+              class="ml-3 text-white/60 hover:text-white transition">
+        ❌
+      </button>
+    </div>
+
+    <!-- Show “No file chosen” if nothing -->
+    <span *ngIf="!chosenFile" class="ml-3 text-sm text-white/50">No file chosen</span>
+  </div>
+</div>
+
+
 
         <!-- Description -->
         <textarea formControlName="description" placeholder="Write your memory details..." rows="5"

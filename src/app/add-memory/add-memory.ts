@@ -51,6 +51,8 @@ export class AddMemoryComponent implements OnInit {
   tempDate = '';
   tempTime = '';
 
+  fileStatus: string = '';
+  fileSuccess: boolean = false;
   constructor(
     private fb: FormBuilder,
     private http: HttpClient,
@@ -149,14 +151,41 @@ export class AddMemoryComponent implements OnInit {
 
   onFileSelected(event: any) {
     const file: File = event.target.files?.[0];
-    if (file) {
-      this.chosenFile = file;
-      this.form.patchValue({ file: file.name });
+
+    if (!file) {
+      this.fileStatus = '';
+      this.fileSuccess = false;
+      return;
     }
+
+    // Example: restrict size to 5 MB
+    if (file.size > 5 * 1024 * 1024) {
+      this.fileStatus = `❌ Error: File too large (max 5MB).`;
+      this.fileSuccess = false;
+      this.chosenFile = null;
+      return;
+    }
+
+    // Example: allow only images/pdf
+    const allowedTypes = ['image/png', 'image/jpeg', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      this.fileStatus = `❌ Error: Invalid file type.`;
+      this.fileSuccess = false;
+      this.chosenFile = null;
+      return;
+    }
+
+    // ✅ Success
+    this.chosenFile = file;
+    this.fileStatus = `✅ File added successfully: ${file.name}`;
+    this.fileSuccess = true;
+    this.form.patchValue({ file: file.name });
   }
 
   removeFile() {
     this.chosenFile = null;
+    this.fileStatus = '';
+    this.fileSuccess = false;
     this.form.patchValue({ file: null });
   }
 
