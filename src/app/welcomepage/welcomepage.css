@@ -1,0 +1,44 @@
+/* Smooth slide animations */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-50px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(50px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes pulseSlow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+@keyframes fadeGlow {
+  0%, 100% { opacity: 0.7; text-shadow: 0 0 10px rgba(255,255,255,0.6); }
+  50% { opacity: 1; text-shadow: 0 0 20px rgba(255,255,255,0.9); }
+}
+
+/* Utility classes */
+.animate-slideDown { animation: slideDown 1.2s ease forwards; }
+.animate-slideUp { animation: slideUp 1.2s ease forwards; }
+.animate-scaleIn { animation: scaleIn 1.2s ease forwards; }
+.animate-pulse-slow { animation: pulseSlow 6s ease-in-out infinite; }
+.animate-fadeGlow { animation: fadeGlow 3s ease-in-out infinite; }
+
+/* Feature Card Styling */
+.feature-card {
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  transition: all 0.3s ease;
+  transform: translateY(0);
+}
+.feature-card:hover {
+  transform: translateY(-10px) scale(1.05);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.5), 0 0 20px rgba(255, 215, 0, 0.4);
+}
