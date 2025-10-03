@@ -58,8 +58,10 @@ export class AddMemoryComponent implements OnInit {
     private ngZone: NgZone,
     private eRef: ElementRef
   ) {
+    const userId = localStorage.getItem('pma-userId');
+
     this.form = this.fb.group({
-      userId: ['user-123', Validators.required],
+      userId: [userId, Validators.required],
       title: ['', Validators.required],
       category: ['notes', Validators.required],
       customCategory: [''],
@@ -71,9 +73,20 @@ export class AddMemoryComponent implements OnInit {
       dosage: [''],
       storageLocation: [''],
     });
+
+    if (!userId) {
+      this.router.navigate(['/auth']);
+    }
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+    // Skip quick question if already answered
+    const answered = localStorage.getItem('pma-quickQuestionAnswered');
+    if (answered === 'true') {
+      this.askingPatient = false;
+      this.showForm = true;
+    }
+  }
 
   @HostListener('document:click', ['$event'])
   clickOutside(event: Event) {
@@ -87,6 +100,10 @@ export class AddMemoryComponent implements OnInit {
   answerPatient(answer: boolean) {
     this.askingPatient = false;
     this.isAlzheimer = answer;
+
+    // Mark as answered so it doesn’t show again
+    localStorage.setItem('pma-quickQuestionAnswered', 'true');
+
     const payload = { userId: this.form.value.userId ?? 'user-123', isAlzheimer: answer };
 
     this.http
@@ -117,9 +134,11 @@ export class AddMemoryComponent implements OnInit {
   onDateChange(event: any) {
     this.tempDate = event.target.value;
   }
+
   onTimeChange(event: any) {
     this.tempTime = event.target.value;
   }
+
   applyDate() {
     if (this.tempDate && this.tempTime) {
       this.selectedDate = new Date(`${this.tempDate}T${this.tempTime}`);
@@ -134,6 +153,11 @@ export class AddMemoryComponent implements OnInit {
       this.chosenFile = file;
       this.form.patchValue({ file: file.name });
     }
+  }
+
+  removeFile() {
+    this.chosenFile = null;
+    this.form.patchValue({ file: null });
   }
 
   onVoiceNoteSelected(event: any) {
@@ -238,10 +262,14 @@ export class AddMemoryComponent implements OnInit {
           if (res.success) {
             this.successMessage = res.message || 'Memory uploaded successfully!';
             const uid = this.form.value.userId;
+
+            // Reset form but keep userId & default category
             this.form.reset({ userId: uid, category: 'notes' });
             this.chosenFile = null;
             this.voiceBlob = null;
             this.selectedCategory = '';
+            this.selectedDate = null;
+            this.audioURL = null;
           } else {
             this.errorMessage = res.message || 'Upload failed.';
           }

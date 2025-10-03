@@ -43,7 +43,7 @@
     </div>
 
     <!-- STEP 2: Form -->
-    <div *ngIf="!askingPatient"
+    <div *ngIf="!askingPatient && showForm"
          class="bg-gradient-to-br from-black/40 via-black/40 to-black/40 
                 backdrop-blur-2xl p-12 rounded-3xl border border-pink-500/20 
                 shadow-[0_0_60px_rgba(0,0,0,0.6),0_0_30px_rgba(255,0,150,0.2)] 
@@ -106,10 +106,11 @@
           <input formControlName="storageLocation" placeholder="Storage Location"
                  class="h-14.5 px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white placeholder-white/60 focus:ring-2 focus:ring-pink-400 transition duration-300 outline-none"/>
         </div>
-         <div *ngIf="form.value.category === 'other'" class="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3 ">
+        <div *ngIf="form.value.category === 'other'" class="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3 ">
           <input formControlName="customCategory" placeholder="Enter your CustomCategory"
                  class="h-14.5 px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white placeholder-white/60 focus:ring-2 focus:ring-pink-400 transition duration-300 outline-none"/>
         </div>
+
         <!-- File Upload -->
         <div class="col-span-2 md:col-span-1">
           <label class="text-white/80 mb-2 block">Attach Document / Image</label>
@@ -119,6 +120,15 @@
                         file:mr-3 file:px-4 file:py-2 file:rounded-xl file:border-none 
                         file:bg-gradient-to-r file:from-pink-400 file:to-purple-500 
                         file:text-white file:font-semibold hover:file:scale-105 transition duration-300"/>
+          
+          <!-- Remove chosen document -->
+          <div *ngIf="chosenFile" class="mt-3 flex items-center gap-4">
+            <span class="text-green-400">{{ chosenFile.name }}</span>
+            <button type="button" (click)="removeFile()"
+                    class="px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold transition">
+              🗑 Remove
+            </button>
+          </div>
         </div>
 
         <!-- Description -->

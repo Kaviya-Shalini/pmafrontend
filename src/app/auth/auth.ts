@@ -31,16 +31,19 @@ export class AuthComponent {
     this.errorMessage = '';
 
     if (this.isLogin) {
-      // Call backend login endpoint
+      // Expect userId in the response
       this.http
-        .post<{ success: boolean; message: string }>('http://localhost:8080/api/login', formValue)
+        .post<{ success: boolean; message: string; userId?: string }>(
+          'http://localhost:8080/api/login',
+          formValue
+        )
         .subscribe({
           next: (res) => {
             this.loading = false;
-            if (res.success) {
+            if (res.success && res.userId) {
+              localStorage.setItem('pma-userId', res.userId); // Save the userId
               this.successMessage = 'Login successful!';
               setTimeout(() => this.router.navigate(['/add-memory']), 1000);
-              // Optionally redirect user after login
             } else {
               this.errorMessage = res.message || 'Invalid credentials.';
             }
@@ -51,18 +54,18 @@ export class AuthComponent {
           },
         });
     } else {
-      // Call backend create account endpoint
+      // Expect userId in the response
       this.http
-        .post<{ success: boolean; message: string }>(
+        .post<{ success: boolean; message: string; userId?: string }>(
           'http://localhost:8080/api/register',
           formValue
         )
         .subscribe({
           next: (res) => {
             this.loading = false;
-            if (res.success) {
+            if (res.success && res.userId) {
+              localStorage.setItem('pma-userId', res.userId); // Save the userId
               this.successMessage = res.message || 'Account created successfully!';
-              // Automatically switch to login mode after creation
               setTimeout(() => this.toggleMode(), 1500);
             } else {
               this.errorMessage = res.message || 'Failed to create account.';
