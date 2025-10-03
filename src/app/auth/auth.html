@@ -34,10 +34,11 @@
     <!-- Form -->
     <form #form="ngForm" (ngSubmit)="submit(form.value)" class="flex flex-col gap-5 w-full">
 
-      <input type="email" name="email" ngModel placeholder="Email" required
-             class="px-5 py-3 rounded-3xl bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-indigo-600/30
-                    placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-pink-400
-                    focus:ring-opacity-60 transition shadow-inner"/>
+      <input type="text" name="username" ngModel placeholder="Username" required
+       class="px-5 py-3 rounded-3xl bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-indigo-600/30
+              placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-pink-400
+              focus:ring-opacity-60 transition shadow-inner"/>
+
 
       <input type="password" name="password" ngModel placeholder="Password" required
              class="px-5 py-3 rounded-3xl bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-indigo-600/30

@@ -90,7 +90,10 @@ export class AddMemoryComponent implements OnInit {
     const payload = { userId: this.form.value.userId ?? 'user-123', isAlzheimer: answer };
 
     this.http
-      .post<{ success: boolean; message?: string }>('/api/patient-status', payload)
+      .post<{ success: boolean; message?: string }>(
+        'http://localhost:8080/api/patient-status',
+        payload
+      )
       .subscribe({
         next: () => {
           this.infoMessage = answer
@@ -227,24 +230,26 @@ export class AddMemoryComponent implements OnInit {
 
     fd.append('isAlzheimer', String(this.isAlzheimer));
 
-    this.http.post<{ success: boolean; message?: string }>('/api/memories', fd).subscribe({
-      next: (res) => {
-        this.loading = false;
-        if (res.success) {
-          this.successMessage = res.message || 'Memory uploaded successfully!';
-          const uid = this.form.value.userId;
-          this.form.reset({ userId: uid, category: 'notes' });
-          this.chosenFile = null;
-          this.voiceBlob = null;
-          this.selectedCategory = '';
-        } else {
-          this.errorMessage = res.message || 'Upload failed.';
-        }
-      },
-      error: (err) => {
-        this.loading = false;
-        this.errorMessage = err.error?.message || 'Server error. Try again later.';
-      },
-    });
+    this.http
+      .post<{ success: boolean; message?: string }>('http://localhost:8080/api/memories', fd)
+      .subscribe({
+        next: (res) => {
+          this.loading = false;
+          if (res.success) {
+            this.successMessage = res.message || 'Memory uploaded successfully!';
+            const uid = this.form.value.userId;
+            this.form.reset({ userId: uid, category: 'notes' });
+            this.chosenFile = null;
+            this.voiceBlob = null;
+            this.selectedCategory = '';
+          } else {
+            this.errorMessage = res.message || 'Upload failed.';
+          }
+        },
+        error: (err) => {
+          this.loading = false;
+          this.errorMessage = err.error?.message || 'Server error. Try again later.';
+        },
+      });
   }
 }
