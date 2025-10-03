@@ -16,11 +16,11 @@ export class AddMemoryComponent implements OnInit {
   isAlzheimer = false;
   showForm = false;
 
-  quickQuestion = '';
   infoMessage = '';
   loading = false;
   successMessage = '';
   errorMessage = '';
+  recordingStatusMessage = '';
 
   form!: FormGroup;
 
@@ -53,6 +53,7 @@ export class AddMemoryComponent implements OnInit {
 
   fileStatus: string = '';
   fileSuccess: boolean = false;
+
   constructor(
     private fb: FormBuilder,
     private http: HttpClient,
@@ -65,9 +66,9 @@ export class AddMemoryComponent implements OnInit {
     this.form = this.fb.group({
       userId: [userId, Validators.required],
       title: ['', Validators.required],
-      category: ['notes', Validators.required],
+      category: ['', Validators.required],
       customCategory: [''],
-      description: [''],
+      description: ['', Validators.required],
       file: [null],
       reminderAt: [''],
       reminderDaily: [false],
@@ -82,7 +83,7 @@ export class AddMemoryComponent implements OnInit {
   }
 
   ngOnInit() {
-    // Skip quick question if already answered
+    // The logic here remains the same, but now it's reading a reliable flag
     const answered = localStorage.getItem('pma-quickQuestionAnswered');
     if (answered === 'true') {
       this.askingPatient = false;
@@ -103,10 +104,7 @@ export class AddMemoryComponent implements OnInit {
     this.askingPatient = false;
     this.isAlzheimer = answer;
 
-    // Mark as answered so it doesn’t show again
-    localStorage.setItem('pma-quickQuestionAnswered', 'true');
-
-    const payload = { userId: this.form.value.userId ?? 'user-123', isAlzheimer: answer };
+    const payload = { userId: this.form.value.userId, isAlzheimer: answer };
 
     this.http
       .post<{ success: boolean; message?: string }>(
@@ -158,7 +156,6 @@ export class AddMemoryComponent implements OnInit {
       return;
     }
 
-    // Example: restrict size to 5 MB
     if (file.size > 5 * 1024 * 1024) {
       this.fileStatus = `❌ Error: File too large (max 5MB).`;
       this.fileSuccess = false;
@@ -166,7 +163,6 @@ export class AddMemoryComponent implements OnInit {
       return;
     }
 
-    // Example: allow only images/pdf
     const allowedTypes = ['image/png', 'image/jpeg', 'application/pdf'];
     if (!allowedTypes.includes(file.type)) {
       this.fileStatus = `❌ Error: Invalid file type.`;
@@ -175,7 +171,6 @@ export class AddMemoryComponent implements OnInit {
       return;
     }
 
-    // ✅ Success
     this.chosenFile = file;
     this.fileStatus = `✅ File added successfully: ${file.name}`;
     this.fileSuccess = true;
@@ -200,18 +195,18 @@ export class AddMemoryComponent implements OnInit {
   deleteVoiceNote() {
     this.voiceBlob = null;
     this.audioURL = null;
+    this.recordingStatusMessage = '';
   }
 
   async startRecording() {
     if (!navigator.mediaDevices?.getUserMedia) {
-      this.errorMessage = 'Recording not supported in this browser.';
+      this.recordingStatusMessage = 'Recording not supported in this browser.';
       return;
     }
 
     try {
       if (this.voiceBlob || this.audioURL) this.deleteVoiceNote();
       this.chunks = [];
-      this.successMessage = '';
       this.errorMessage = '';
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -232,11 +227,10 @@ export class AddMemoryComponent implements OnInit {
       this.mediaRecorder.start();
       this.recording = true;
       this.ngZone.run(() => {
-        this.successMessage = '🎙 Recording started...';
-        this.errorMessage = '';
+        this.recordingStatusMessage = '🎙 Recording started...';
       });
     } catch {
-      this.errorMessage = 'Microphone access denied or unavailable.';
+      this.recordingStatusMessage = 'Microphone access denied or unavailable.';
     }
   }
 
@@ -245,14 +239,24 @@ export class AddMemoryComponent implements OnInit {
       this.mediaRecorder.stop();
       this.recording = false;
       this.ngZone.run(() => {
-        this.successMessage = '⏹ Recording stopped. Preview enabled 👇';
+        this.recordingStatusMessage = '⏹ Recording stopped. Preview enabled 👇';
       });
     }
   }
+  logout() {
+    // Clear all user-specific data from localStorage
+    localStorage.removeItem('pma-userId');
+    localStorage.removeItem('pma-quickQuestionAnswered');
 
+    // Redirect to the authentication page
+    this.router.navigate(['/auth']);
+  }
   submit() {
     if (this.form.invalid) {
-      this.errorMessage = 'Please fill required fields (title & category).';
+      this.errorMessage = 'Please fill all required fields (title, category, and description).';
+      setTimeout(() => {
+        this.errorMessage = '';
+      }, 4000);
       return;
     }
 
@@ -281,8 +285,6 @@ export class AddMemoryComponent implements OnInit {
       fd.append('storageLocation', values.storageLocation ?? '');
     }
 
-    fd.append('isAlzheimer', String(this.isAlzheimer));
-
     this.http
       .post<{ success: boolean; message?: string }>('http://localhost:8080/api/memories', fd)
       .subscribe({
@@ -291,21 +293,29 @@ export class AddMemoryComponent implements OnInit {
           if (res.success) {
             this.successMessage = res.message || 'Memory uploaded successfully!';
             const uid = this.form.value.userId;
-
-            // Reset form but keep userId & default category
-            this.form.reset({ userId: uid, category: 'notes' });
+            this.form.reset({ userId: uid, category: '' });
             this.chosenFile = null;
             this.voiceBlob = null;
             this.selectedCategory = '';
             this.selectedDate = null;
             this.audioURL = null;
+            this.recordingStatusMessage = '';
+            setTimeout(() => {
+              this.successMessage = '';
+            }, 4000);
           } else {
             this.errorMessage = res.message || 'Upload failed.';
+            setTimeout(() => {
+              this.errorMessage = '';
+            }, 4000);
           }
         },
         error: (err) => {
           this.loading = false;
           this.errorMessage = err.error?.message || 'Server error. Try again later.';
+          setTimeout(() => {
+            this.errorMessage = '';
+          }, 4000);
         },
       });
   }

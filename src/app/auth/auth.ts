@@ -33,15 +33,19 @@ export class AuthComponent {
     if (this.isLogin) {
       // Expect userId in the response
       this.http
-        .post<{ success: boolean; message: string; userId?: string }>(
-          'http://localhost:8080/api/login',
-          formValue
-        )
+        .post<{
+          success: boolean;
+          message: string;
+          userId?: string;
+          quickQuestionAnswered?: boolean;
+        }>('http://localhost:8080/api/login', formValue)
         .subscribe({
           next: (res) => {
             this.loading = false;
             if (res.success && res.userId) {
-              localStorage.setItem('pma-userId', res.userId); // Save the userId
+              localStorage.setItem('pma-userId', res.userId);
+              // --- STORE THE NEW FLAG ---
+              localStorage.setItem('pma-quickQuestionAnswered', String(res.quickQuestionAnswered));
               this.successMessage = 'Login successful!';
               setTimeout(() => this.router.navigate(['/add-memory']), 1000);
             } else {
@@ -56,15 +60,19 @@ export class AuthComponent {
     } else {
       // Expect userId in the response
       this.http
-        .post<{ success: boolean; message: string; userId?: string }>(
-          'http://localhost:8080/api/register',
-          formValue
-        )
+        .post<{
+          success: boolean;
+          message: string;
+          userId?: string;
+          quickQuestionAnswered?: boolean;
+        }>('http://localhost:8080/api/register', formValue)
         .subscribe({
           next: (res) => {
             this.loading = false;
             if (res.success && res.userId) {
-              localStorage.setItem('pma-userId', res.userId); // Save the userId
+              localStorage.setItem('pma-userId', res.userId);
+              // --- STORE THE NEW FLAG ---
+              localStorage.setItem('pma-quickQuestionAnswered', String(res.quickQuestionAnswered));
               this.successMessage = res.message || 'Account created successfully!';
               setTimeout(() => this.toggleMode(), 1500);
             } else {
