@@ -1,3 +1,4 @@
+// in kaviya-shalini/pmafrontend/pmafrontend-a7b6258709fbf669e5a3ddf14669fdf8c0aba887/src/app/dashboard/dashboard.ts
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
@@ -32,12 +33,13 @@ export class DashboardComponent implements OnInit {
   }
 
   loadUser() {
-    this.http.get('/api/user').subscribe((res: any) => {
-      this.user = res;
-      if (this.user?.userId) {
-        this.loadMemories(this.user.userId);
-      }
-    });
+    const userId = localStorage.getItem('pma-userId');
+    if (userId) {
+      this.http.get(`http://localhost:8080/api/user/${userId}`).subscribe((res: any) => {
+        this.user = res;
+        this.loadMemories(userId);
+      });
+    }
   }
   // Get unique categories
   getCategories(): string[] {
@@ -72,7 +74,7 @@ export class DashboardComponent implements OnInit {
   }
 
   loadMemories(userId: string) {
-    this.http.get('/api/memories/recent/' + userId).subscribe((res: any) => {
+    this.http.get(`http://localhost:8080/api/memories/recent/${userId}`).subscribe((res: any) => {
       this.memories = res;
       this.recentMemories = this.memories
         .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())

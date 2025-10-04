@@ -1,85 +1,106 @@
-<div class="min-h-screen w-full p-8 bg-gradient-to-tr from-indigo-950 via-purple-900 to-pink-800 text-white flex flex-col gap-12">
+<div
+  class="min-h-screen w-full flex flex-col bg-gradient-to-tr from-indigo-950 via-purple-900 to-pink-800 text-white relative overflow-hidden">
 
-  <!-- Header with User Info and Stats -->
-  <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-    <h1 class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400">
-      Welcome, {{ user?.username }}
-    </h1>
-    <div class="flex flex-col md:flex-row gap-4 items-start md:items-center">
-      <span *ngIf="user?.isAlzheimer" class="text-red-500 text-xl font-bold animate-pulse">🧠 Alzheimer</span>
-      <div class="px-4 py-2 bg-white/10 rounded-xl text-white font-semibold flex gap-4">
-        <span>Total Uploads: {{ memories.length }}</span>
-        <span>Total Categories:{{ getCategories().length }}</span>
-        <span>Recent Memory: {{ recentMemories[0]?.title || '-' }}</span>
-      </div>
+  <!-- Floating Glows -->
+  <div class="absolute top-20 left-10 w-[400px] h-[400px] bg-pink-500 opacity-30 blur-[160px] animate-pulse-slow"></div>
+  <div class="absolute bottom-20 right-10 w-[400px] h-[400px] bg-indigo-400 opacity-20 blur-[180px] animate-pulse-slow"></div>
+
+  <!-- Header -->
+  <header class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 z-10">
+    <div>
+      <h1 class="text-4xl font-extrabold tracking-wide drop-shadow-lg">
+        Welcome back, <span class="text-yellow-300">{{ user?.username }}</span>
+      </h1>
+      <p class="text-sm opacity-70 mt-2">Here’s a quick look at your memory insights ✨</p>
     </div>
-  </div>
+    <span *ngIf="user?.isAlzheimer"
+      class="px-4 py-1 bg-red-500/20 text-red-300 text-sm rounded-full mt-4 md:mt-0 shadow-md">
+      🧠 Alzheimer Patient
+    </span>
+  </header>
+
+  <!-- KPIs Section -->
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-6 px-8 mb-10 z-10">
+    <div
+      class="bg-white/10 rounded-2xl p-6 shadow-lg backdrop-blur-md border border-white/10 hover:scale-105 transition-transform duration-300">
+      <div class="flex justify-between items-center">
+        <p class="text-sm opacity-80">Top Category</p>
+        <span class="text-yellow-300 text-xl">🏷️</span>
+      </div>
+      <h2 class="text-3xl font-bold mt-2 text-white drop-shadow">{{ getTopCategory() }}</h2>
+      <p class="text-xs text-white/60 mt-2">Your most frequent type of memory</p>
+    </div>
+
+    <div
+      class="bg-white/10 rounded-2xl p-6 shadow-lg backdrop-blur-md border border-white/10 hover:scale-105 transition-transform duration-300">
+      <div class="flex justify-between items-center">
+        <p class="text-sm opacity-80">Total Memories</p>
+        <span class="text-yellow-300 text-xl">📚</span>
+      </div>
+      <h2 class="text-3xl font-bold mt-2 text-white drop-shadow">{{ memories.length || 0 }}</h2>
+      <p class="text-xs text-white/60 mt-2">Total memories saved so far</p>
+    </div>
+
+    <div
+      class="bg-white/10 rounded-2xl p-6 shadow-lg backdrop-blur-md border border-white/10 hover:scale-105 transition-transform duration-300">
+      <div class="flex justify-between items-center">
+        <p class="text-sm opacity-80">Latest Upload</p>
+        <span class="text-yellow-300 text-xl">🕒</span>
+      </div>
+      <h2 class="text-2xl font-semibold mt-2">{{ recentMemories[0]?.title || '-' }}</h2>
+      <p class="text-xs text-white/60 mt-1">{{ recentMemories[0]?.createdAt | date:'short' }}</p>
+    </div>
+  </section>
 
   <!-- Charts Section -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-
-    <!-- Pie Chart: Category Distribution -->
-    <div class="bg-black/40 p-6 rounded-3xl shadow-lg flex flex-col items-center transform hover:scale-105 transition-all duration-500 hover:shadow-2xl">
-      <h2 class="text-xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">Category Distribution</h2>
-      <canvas #pieChart class="w-full h-64"></canvas>
-      <p class="mt-2 text-sm text-white/70">Shows memory distribution by category</p>
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-6 px-8 mb-14 z-10">
+    <div
+      class="bg-white/10 rounded-2xl p-5 shadow-lg backdrop-blur-md border border-white/10 hover:shadow-xl transition-all duration-300">
+      <h3 class="text-lg font-semibold mb-3 text-yellow-300">Category Distribution</h3>
+      <canvas #pieChart></canvas>
     </div>
 
-    <!-- Bar Chart: Daily Uploads -->
-    <div class="bg-black/40 p-6 rounded-3xl shadow-lg flex flex-col items-center transform hover:scale-105 transition-all duration-500 hover:shadow-2xl">
-      <h2 class="text-xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">Daily Uploads</h2>
-      <canvas #barChart class="w-full h-64"></canvas>
-      <p class="mt-2 text-sm text-white/70">Tracks daily memory uploads</p>
+    <div
+      class="bg-white/10 rounded-2xl p-5 shadow-lg backdrop-blur-md border border-white/10 hover:shadow-xl transition-all duration-300">
+      <h3 class="text-lg font-semibold mb-3 text-yellow-300">Upload Frequency</h3>
+      <canvas #barChart></canvas>
     </div>
 
-    <!-- Line Chart: Uploads Trend -->
-    <div class="bg-black/40 p-6 rounded-3xl shadow-lg flex flex-col items-center transform hover:scale-105 transition-all duration-500 hover:shadow-2xl">
-      <h2 class="text-xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-indigo-400">Uploads Trend</h2>
-      <canvas #lineChart class="w-full h-64"></canvas>
-      <p class="mt-2 text-sm text-white/70">Shows upload trends over time</p>
+    <div
+      class="bg-white/10 rounded-2xl p-5 shadow-lg backdrop-blur-md border border-white/10 hover:shadow-xl transition-all duration-300">
+      <h3 class="text-lg font-semibold mb-3 text-yellow-300">Memory Trend</h3>
+      <canvas #lineChart></canvas>
     </div>
+  </section>
 
-  </div>
+  <!-- Recent Memories Section -->
+  <section class="px-8 pb-10 z-10">
+    <h2 class="text-2xl font-bold mb-5 drop-shadow-lg">🧾 Recent Memories</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-5">
+      <div *ngFor="let memory of recentMemories"
+        class="bg-gradient-to-br from-indigo-600 to-purple-600 p-5 rounded-xl hover:scale-105 hover:shadow-xl 
+               transition-transform duration-300 cursor-pointer backdrop-blur-md border border-white/10">
 
-  <!-- Highlights Section -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-  <!-- Most Active Day -->
-  <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-fuchsia-500 p-6 rounded-3xl shadow-lg hover:scale-105 transition-all duration-500">
-    <h3 class="text-lg font-bold text-white">Most Active Day</h3>
-    <p class="text-white/90 mt-2">{{ getMostActiveDay() }}</p>
-  </div>
+        <h3 class="font-bold text-lg truncate">{{ memory.title }}</h3>
+        <p class="text-sm opacity-80 mt-1">{{ memory.category === 'other' ? memory.customCategory : memory.category }}</p>
+        <p class="text-xs opacity-70 mt-2 line-clamp-2">{{ memory.description }}</p>
+        <p class="text-[11px] opacity-50 mt-2">{{ memory.createdAt | date:'short' }}</p>
 
-  <!-- Top Category -->
-  <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-fuchsia-500 p-6 rounded-3xl shadow-lg hover:scale-105 transition-all duration-500">
-    <h3 class="text-lg font-bold text-white">Top Category</h3>
-    <p class="text-white/90 mt-2">{{ getTopCategory() }}</p>
-  </div>
-
-  <!-- Latest Upload -->
-  <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-fuchsia-500 p-6 rounded-3xl shadow-lg hover:scale-105 transition-all duration-500">
-    <h3 class="text-lg font-bold text-white">Latest Upload</h3>
-    <p class="text-white/90 mt-2">{{ recentMemories[0]?.title || '-' }}</p>
-  </div>
-</div>
-
-
-  <!-- Recent Memories -->
-  <div class="bg-black/40 p-6 rounded-3xl shadow-lg">
-    <h2 class="text-2xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">Recent Memories</h2>
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-      <div *ngFor="let memory of recentMemories" 
-           class="bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 p-4 rounded-2xl shadow-md hover:scale-105 hover:shadow-2xl transition-all duration-500 cursor-pointer group relative overflow-hidden">
-        <h3 class="font-bold text-lg group-hover:text-white">{{ memory.title }}</h3>
-        <p class="text-sm group-hover:text-white/90">{{ memory.category === 'other' ? memory.customCategory : memory.category }}</p>
-        <p class="text-xs mt-2 group-hover:text-white/80">{{ memory.description }}</p>
-        <p class="text-[10px] mt-1 text-white/60 group-hover:text-white/50">Created: {{ memory.createdAt | date:'short' }}</p>
-
-        <!-- Overlay for more interaction -->
-        <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex justify-center items-center">
-          <span class="text-white text-sm font-semibold">Click to view memory</span>
+        <div class="flex justify-end mt-3">
+          <button
+            class="px-3 py-1 text-xs rounded-full bg-yellow-400 text-indigo-950 font-semibold hover:scale-110 transition-all duration-300">
+            View
+          </button>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 
+  <!-- Floating Call-to-Action -->
+  
+
+  <!-- Footer -->
+  <footer class="text-center py-6 text-sm opacity-70 mt-10 z-10">
+    © 2025 Memory Care • Designed with 💜 for Compassion
+  </footer>
 </div>
