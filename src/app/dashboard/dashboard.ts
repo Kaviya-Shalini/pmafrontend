@@ -1,8 +1,7 @@
-// in kaviya-shalini/pmafrontend/pmafrontend-a7b6258709fbf669e5a3ddf14669fdf8c0aba887/src/app/dashboard/dashboard.ts
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
-import { Chart, registerables } from 'chart.js';
+import { Chart, registerables, ChartConfiguration, ChartOptions } from 'chart.js';
 import { RouterModule } from '@angular/router';
 
 Chart.register(...registerables);
@@ -14,7 +13,7 @@ Chart.register(...registerables);
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.css'],
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('pieChart') pieChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('barChart') barChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('lineChart') lineChartRef!: ElementRef<HTMLCanvasElement>;
@@ -22,14 +21,41 @@ export class DashboardComponent implements OnInit {
   memories: any[] = [];
   recentMemories: any[] = [];
   user: any = null;
-  pieChart: any;
-  barChart: any;
-  lineChart: any;
+  today: Date = new Date();
+  reminders: any[] = [];
+  activeChart: 'bar' | 'line' | 'pie' = 'bar';
+
+  private charts: Chart[] = [];
 
   constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
     this.loadUser();
+  }
+
+  ngAfterViewInit(): void {
+    // Charts will be created after data is loaded
+  }
+  getTodayDate(): string {
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    };
+    return this.today.toLocaleDateString('en-US', options);
+  }
+
+  getMotivationMessage(): string {
+    const messages = [
+      '✨ Keep going, you’re stronger than you think!',
+      '🌸 One step at a time, you’re making progress.',
+      '🌞 Today is a fresh start—make it beautiful!',
+      '💪 Believe in yourself, you’ve got this!',
+      '🌈 Every memory matters—cherish today!',
+    ];
+    // Pick a random motivational message
+    return messages[Math.floor(Math.random() * messages.length)];
   }
 
   loadUser() {
@@ -41,159 +67,324 @@ export class DashboardComponent implements OnInit {
       });
     }
   }
-  // Get unique categories
-  getCategories(): string[] {
-    const categories = this.memories.map((m) =>
-      m.category === 'other' ? m.customCategory : m.category
-    );
-    return Array.from(new Set(categories));
-  }
-
-  // Most active day (the day with the most memories)
-  getMostActiveDay(): string {
-    if (!this.memories.length) return '-';
-    const dayCounts: Record<string, number> = {};
-    this.memories.forEach((m) => {
-      const day = new Date(m.createdAt).toLocaleDateString();
-      dayCounts[day] = (dayCounts[day] || 0) + 1;
-    });
-    const sortedDays = Object.entries(dayCounts).sort((a, b) => b[1] - a[1]);
-    return sortedDays[0][0];
-  }
-
-  // Top category (most uploaded category)
-  getTopCategory(): string {
-    if (!this.memories.length) return '-';
-    const counts: Record<string, number> = {};
-    this.memories.forEach((m) => {
-      const cat = m.category === 'other' ? m.customCategory : m.category;
-      counts[cat] = (counts[cat] || 0) + 1;
-    });
-    const sortedCats = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-    return sortedCats[0][0];
-  }
 
   loadMemories(userId: string) {
-    this.http.get(`http://localhost:8080/api/memories/recent/${userId}`).subscribe((res: any) => {
-      this.memories = res;
-      this.recentMemories = this.memories
-        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 5);
+    this.http
+      .get<any[]>(`http://localhost:8080/api/memories/recent/${userId}`)
+      .subscribe((res: any[]) => {
+        // Ensure all date strings are valid Date objects
+        this.memories = res.map((m) => ({ ...m, createdAt: new Date(m.createdAt) }));
+        this.recentMemories = this.memories
+          .sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime())
+          .slice(0, 5);
 
-      if (this.pieChartRef && this.barChartRef && this.lineChartRef) {
-        this.createPieChart();
-        this.createBarChart();
-        this.createLineChart();
+        // We need to make sure the view is initialized before creating charts
+        setTimeout(() => this.createCharts(), 0);
+      });
+  }
+
+  setActiveChart(chartType: 'bar' | 'line' | 'pie') {
+    this.activeChart = chartType;
+  }
+
+  getCategories(): string[] {
+    if (!this.memories || this.memories.length === 0) return [];
+    const categories = this.memories.map((m) =>
+      m.category === 'other' && m.customCategory ? m.customCategory : m.category
+    );
+    return Array.from(new Set(categories.filter((c) => c)));
+  }
+
+  getMostActiveDay(): string {
+    if (!this.memories.length) return 'N/A';
+    const dayCounts: Record<string, number> = {};
+    this.memories.forEach((m) => {
+      if (m.createdAt && !isNaN(m.createdAt.getTime())) {
+        const day = m.createdAt.toLocaleDateString('en-US', { weekday: 'long' });
+        dayCounts[day] = (dayCounts[day] || 0) + 1;
       }
     });
+    if (Object.keys(dayCounts).length === 0) return 'N/A';
+    return Object.entries(dayCounts).sort((a, b) => b[1] - a[1])[0][0];
+  }
+
+  getTopCategory(): string {
+    if (!this.memories.length) return 'N/A';
+    const counts: Record<string, number> = {};
+    this.memories.forEach((m) => {
+      const cat = m.category === 'other' && m.customCategory ? m.customCategory : m.category;
+      if (cat) {
+        counts[cat] = (counts[cat] || 0) + 1;
+      }
+    });
+    if (Object.keys(counts).length === 0) return 'N/A';
+    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+  }
+
+  private createCharts() {
+    this.destroyCharts();
+    this.createPieChart();
+    this.createBarChart();
+    this.createLineChart();
+  }
+
+  private destroyCharts() {
+    this.charts.forEach((chart) => chart.destroy());
+    this.charts = [];
+  }
+
+  private getChartOptions(title: string): ChartOptions {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#9ca3af' },
+        },
+        title: {
+          display: false,
+          text: title,
+          color: '#e5e7eb',
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: '#9ca3af' },
+          grid: { color: 'rgba(255, 255, 255, 0.1)' },
+        },
+        y: {
+          ticks: { color: '#9ca3af' },
+          grid: { color: 'rgba(255, 255, 255, 0.1)' },
+        },
+      },
+    };
   }
 
   createPieChart() {
     const ctx = this.pieChartRef?.nativeElement?.getContext('2d');
-    if (!ctx) return; // stop if context is not ready
-    const categoryCounts: any = {};
-    this.memories.forEach((m) => {
-      const cat = m.category === 'other' ? m.customCategory : m.category;
-      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
-    });
-    const labels = Object.keys(categoryCounts);
-    const data = Object.values(categoryCounts);
+    if (!ctx) return;
 
-    if (this.pieChart) this.pieChart.destroy();
-    this.pieChart = new Chart(ctx, {
-      type: 'pie',
+    const categoryCounts: Record<string, number> = {};
+    this.memories.forEach((m) => {
+      const cat = m.category === 'other' && m.customCategory ? m.customCategory : m.category;
+      if (cat) categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+    });
+
+    if (this.charts.find((c) => c.canvas === this.pieChartRef.nativeElement)) {
+      this.destroyCharts();
+    }
+
+    const gradientColors = [
+      ctx.createLinearGradient(0, 0, 150, 150),
+      ctx.createLinearGradient(0, 0, 150, 150),
+      ctx.createLinearGradient(0, 0, 150, 150),
+      ctx.createLinearGradient(0, 0, 150, 150),
+      ctx.createLinearGradient(0, 0, 150, 150),
+    ];
+    gradientColors[0].addColorStop(0, '#818cf8');
+    gradientColors[0].addColorStop(1, '#4f46e5');
+    gradientColors[1].addColorStop(0, '#a855f7');
+    gradientColors[1].addColorStop(1, '#7c3aed');
+    gradientColors[2].addColorStop(0, '#ec4899');
+    gradientColors[2].addColorStop(1, '#db2777');
+    gradientColors[3].addColorStop(0, '#facc15');
+    gradientColors[3].addColorStop(1, '#f59e0b');
+    gradientColors[4].addColorStop(0, '#34d399');
+    gradientColors[4].addColorStop(1, '#10b981');
+
+    const pieChart = new Chart(ctx, {
+      type: 'doughnut',
       data: {
-        labels,
+        labels: Object.keys(categoryCounts),
         datasets: [
           {
-            data,
-            backgroundColor: ['#f43f5e', '#6366f1', '#10b981', '#facc15', '#8b5cf6'],
+            data: Object.values(categoryCounts),
+            backgroundColor: gradientColors,
+            borderWidth: 2,
+            borderColor: 'rgba(255,255,255,0.3)',
+            hoverOffset: 15,
           },
         ],
       },
       options: {
         responsive: true,
+        cutout: '65%',
         plugins: {
-          legend: { position: 'bottom', labels: { color: '#fff' } },
+          legend: {
+            position: 'bottom',
+            labels: { color: '#f9fafb', font: { size: 13 } },
+          },
+          tooltip: {
+            backgroundColor: '#1e1b4b',
+            titleColor: '#fff',
+            bodyColor: '#ddd',
+            borderWidth: 1,
+            borderColor: '#fff',
+          },
+        },
+        animation: {
+          animateRotate: true,
+          animateScale: true,
         },
       },
     });
+
+    this.charts.push(pieChart);
   }
 
   createBarChart() {
     const ctx = this.barChartRef?.nativeElement?.getContext('2d');
     if (!ctx) return;
-    const dayCounts: any = {};
 
+    const dailyCounts: Record<string, number> = {};
     this.memories.forEach((m) => {
-      const day = new Date(m.createdAt).toLocaleDateString();
-      dayCounts[day] = (dayCounts[day] || 0) + 1;
+      if (m.createdAt && !isNaN(m.createdAt.getTime())) {
+        const day = m.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        dailyCounts[day] = (dailyCounts[day] || 0) + 1;
+      }
     });
 
-    const labels = Object.keys(dayCounts);
-    const data = Object.values(dayCounts);
+    const labels = Object.keys(dailyCounts);
+    const data = Object.values(dailyCounts);
 
-    if (this.barChart) this.barChart.destroy();
-    this.barChart = new Chart(ctx, {
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, 'rgba(99,102,241,0.9)');
+    gradient.addColorStop(1, 'rgba(79,70,229,0.4)');
+
+    const barChart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels,
         datasets: [
           {
-            label: 'Daily Uploads',
+            label: 'Uploads',
             data,
-            backgroundColor: '#3b82f6',
+            backgroundColor: gradient,
+            borderColor: '#6366f1',
+            borderWidth: 2,
+            borderRadius: 6,
+            hoverBackgroundColor: 'rgba(167,139,250,0.9)',
           },
         ],
       },
       options: {
         responsive: true,
-        plugins: { legend: { display: false } },
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1e1b4b',
+            titleColor: '#fff',
+            bodyColor: '#ddd',
+            borderWidth: 1,
+            borderColor: '#fff',
+          },
+        },
         scales: {
-          x: { ticks: { color: '#fff' } },
-          y: { ticks: { color: '#fff' } },
+          x: {
+            ticks: { color: '#f9fafb' },
+            grid: { color: 'rgba(255,255,255,0.08)' },
+          },
+          y: {
+            ticks: { color: '#f9fafb' },
+            grid: { color: 'rgba(255,255,255,0.08)' },
+            beginAtZero: true,
+          },
+        },
+        animation: {
+          duration: 1000,
+          easing: 'easeOutQuart',
         },
       },
     });
+
+    this.charts.push(barChart);
   }
 
   createLineChart() {
     const ctx = this.lineChartRef?.nativeElement?.getContext('2d');
     if (!ctx) return;
-    const dayCounts: any = {};
 
-    this.memories.forEach((m) => {
-      const day = new Date(m.createdAt).toLocaleDateString();
-      dayCounts[day] = (dayCounts[day] || 0) + 1;
-    });
+    const trendCounts: Record<string, number> = {};
+    this.memories
+      .slice()
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+      .forEach((m) => {
+        if (m.createdAt && !isNaN(m.createdAt.getTime())) {
+          const day = m.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          trendCounts[day] = (trendCounts[day] || 0) + 1;
+        }
+      });
 
-    const labels = Object.keys(dayCounts);
-    const data = Object.values(dayCounts);
+    const labels = Object.keys(trendCounts);
+    const data = Object.values(trendCounts);
 
-    if (this.lineChart) this.lineChart.destroy();
-    this.lineChart = new Chart(ctx, {
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, 'rgba(236,72,153,0.5)');
+    gradient.addColorStop(1, 'rgba(236,72,153,0)');
+
+    const lineChart = new Chart(ctx, {
       type: 'line',
       data: {
         labels,
         datasets: [
           {
-            label: 'Uploads Trend',
+            label: 'Upload Trend',
             data,
-            borderColor: '#f97316',
-            backgroundColor: 'rgba(249,115,22,0.3)',
-            tension: 0.4,
+            borderColor: '#f472b6',
+            backgroundColor: gradient,
             fill: true,
+            tension: 0.4,
+            borderWidth: 2.5,
+            pointRadius: 4,
+            pointHoverRadius: 7,
+            pointBackgroundColor: '#f9a8d4',
+            pointBorderColor: '#fff',
           },
         ],
       },
       options: {
         responsive: true,
-        plugins: { legend: { labels: { color: '#fff' } } },
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1e1b4b',
+            titleColor: '#fff',
+            bodyColor: '#ddd',
+            borderWidth: 1,
+            borderColor: '#fff',
+          },
+        },
         scales: {
-          x: { ticks: { color: '#fff' } },
-          y: { ticks: { color: '#fff' } },
+          x: {
+            ticks: { color: '#f9fafb' },
+            grid: { color: 'rgba(255,255,255,0.08)' },
+          },
+          y: {
+            ticks: { color: '#f9fafb' },
+            grid: { color: 'rgba(255,255,255,0.08)' },
+            beginAtZero: true,
+          },
+        },
+        animation: {
+          duration: 1200,
+          easing: 'easeOutCubic',
         },
       },
     });
+
+    this.charts.push(lineChart);
+  }
+  getMoodScore(): number {
+    if (!this.memories.length) return 0;
+    const categories = this.memories.map((m) => m.category);
+    const positiveCategories = ['family', 'travel', 'friends', 'celebration'];
+    const positiveCount = categories.filter((c) => positiveCategories.includes(c)).length;
+    return Math.round((positiveCount / this.memories.length) * 100);
+  }
+  ngOnDestroy(): void {
+    this.destroyCharts();
   }
 }

@@ -1,0 +1,7 @@
+/* Keep CSS small — main style uses Tailwind. Add a subtle glass effect for cards */
+:host {
+  display: block;
+}
+
+/* example extra nicety, optional */
+img { display: block; }

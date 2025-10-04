@@ -15,10 +15,15 @@ export class AppLayoutComponent {
   navItems = [
     { label: 'Dashboard', route: '/dashboard', icon: '📊' },
     { label: 'Add Memory', route: '/add-memory', icon: '🧠' },
-    { label: 'Search', route: '/search', icon: '🔍' },
+    { label: 'Memories', route: '/memories', icon: '💓' },
     { label: 'Connect Family', route: '/connect-family', icon: '👨‍👩‍👧‍👦' },
     { label: 'Location', route: '/location', icon: '📍' },
-    { label: 'Upload', route: '/upload', icon: '📤' },
+    { label: 'Photo contacts', route: '/photocontacts', icon: '📞' },
+    { label: 'My People', route: '/mypeople', icon: '🫂' },
+    { label: 'How I Feel', route: '/howifeel', icon: '😳😊' },
+    { label: 'Emergency Help', route: '/emergencyhelp', icon: '‼️' },
+    { label: 'Routine Tracker', route: '/routinetracker', icon: '📋' },
+    { label: 'Settings', route: '/settings', icon: '⚙️' },
   ];
 
   constructor(private router: Router) {}

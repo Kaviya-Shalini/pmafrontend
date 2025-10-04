@@ -1,5 +1,8 @@
 <div
-  class="min-h-screen w-full flex flex-col bg-gradient-to-tr from-indigo-950 via-purple-900 to-pink-800 text-white relative overflow-hidden">
+  class="min-h-screen w-full flex flex-col 
+            bg-gradient-to-tr from-indigo-950 via-purple-950 to-pink-950 
+            text-white relative overflow-hidden rounded-3xl">
+
 
   <!-- Floating Glows -->
   <div class="absolute top-20 left-10 w-[400px] h-[400px] bg-pink-500 opacity-30 blur-[160px] animate-pulse-slow"></div>
@@ -11,96 +14,146 @@
       <h1 class="text-4xl font-extrabold tracking-wide drop-shadow-lg">
         Welcome back, <span class="text-yellow-300">{{ user?.username }}</span>
       </h1>
-      <p class="text-sm opacity-70 mt-2">Here’s a quick look at your memory insights ✨</p>
+      <p class="text-sm opacity-70 mt-2">Here’s your personalized memory dashboard ✨</p>
     </div>
     <span *ngIf="user?.isAlzheimer"
       class="px-4 py-1 bg-red-500/20 text-red-300 text-sm rounded-full mt-4 md:mt-0 shadow-md">
       🧠 Alzheimer Patient
     </span>
   </header>
+  <!-- TODAY'S DATE & MOTIVATION -->
+<section class="px-8 mb-10 z-10">
+  <div
+    class="bg-gradient-to-r from-purple-600 via-pink-500 to-yellow-400 
+           text-white p-6 rounded-2xl shadow-2xl flex flex-col md:flex-row 
+           justify-between items-center hover:scale-105 transition-all duration-500">
 
-  <!-- KPIs Section -->
-  <section class="grid grid-cols-1 md:grid-cols-3 gap-6 px-8 mb-10 z-10">
+    <div>
+      <h2 class="text-2xl font-bold drop-shadow-lg">
+        📅 {{ getTodayDate() }}
+      </h2>
+      <p class="text-sm opacity-90 mt-1">Your special day starts here 💜</p>
+    </div>
+
+    <div class="mt-4 md:mt-0">
+      <p class="text-lg font-semibold italic text-center md:text-right">
+        "{{ getMotivationMessage() }}"
+      </p>
+    </div>
+  </div>
+</section>
+
+
+  <!-- KPI CARDS -->
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-6 px-8 mb-12 z-10">
     <div
-      class="bg-white/10 rounded-2xl p-6 shadow-lg backdrop-blur-md border border-white/10 hover:scale-105 transition-transform duration-300">
+      class="bg-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-md border border-white/10 hover:scale-105 transition-all duration-300">
       <div class="flex justify-between items-center">
         <p class="text-sm opacity-80">Top Category</p>
         <span class="text-yellow-300 text-xl">🏷️</span>
       </div>
-      <h2 class="text-3xl font-bold mt-2 text-white drop-shadow">{{ getTopCategory() }}</h2>
-      <p class="text-xs text-white/60 mt-2">Your most frequent type of memory</p>
+      <h2 class="text-3xl font-bold mt-2 text-yellow-300 drop-shadow">{{ getTopCategory() }}</h2>
+      <p class="text-xs text-white/60 mt-2">Your most used category</p>
     </div>
 
     <div
-      class="bg-white/10 rounded-2xl p-6 shadow-lg backdrop-blur-md border border-white/10 hover:scale-105 transition-transform duration-300">
+      class="bg-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-md border border-white/10 hover:scale-105 transition-all duration-300">
       <div class="flex justify-between items-center">
         <p class="text-sm opacity-80">Total Memories</p>
         <span class="text-yellow-300 text-xl">📚</span>
       </div>
-      <h2 class="text-3xl font-bold mt-2 text-white drop-shadow">{{ memories.length || 0 }}</h2>
-      <p class="text-xs text-white/60 mt-2">Total memories saved so far</p>
+      <h2 class="text-3xl font-bold mt-2 text-green-400 drop-shadow">{{ memories.length || 0 }}</h2>
+      <p class="text-xs text-white/60 mt-2">All memories uploaded</p>
     </div>
 
     <div
-      class="bg-white/10 rounded-2xl p-6 shadow-lg backdrop-blur-md border border-white/10 hover:scale-105 transition-transform duration-300">
+      class="bg-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-md border border-white/10 hover:scale-105 transition-all duration-300">
       <div class="flex justify-between items-center">
         <p class="text-sm opacity-80">Latest Upload</p>
         <span class="text-yellow-300 text-xl">🕒</span>
       </div>
-      <h2 class="text-2xl font-semibold mt-2">{{ recentMemories[0]?.title || '-' }}</h2>
+      <h2 class="text-2xl font-semibold mt-2 text-white truncate">{{ recentMemories[0]?.title || '-' }}</h2>
       <p class="text-xs text-white/60 mt-1">{{ recentMemories[0]?.createdAt | date:'short' }}</p>
     </div>
   </section>
 
   <!-- Charts Section -->
-  <section class="grid grid-cols-1 md:grid-cols-3 gap-6 px-8 mb-14 z-10">
+  <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 px-8 mb-16 z-10">
+    <!-- PIE CHART -->
     <div
-      class="bg-white/10 rounded-2xl p-5 shadow-lg backdrop-blur-md border border-white/10 hover:shadow-xl transition-all duration-300">
-      <h3 class="text-lg font-semibold mb-3 text-yellow-300">Category Distribution</h3>
-      <canvas #pieChart></canvas>
+      class="bg-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-md border border-white/10 hover:scale-110 transition-all duration-500">
+      <h3 class="text-lg font-semibold mb-4 text-yellow-300">Category Distribution</h3>
+      <div class="h-[260px] flex justify-center items-center">
+        <canvas #pieChart></canvas>
+      </div>
     </div>
 
+    <!-- BAR CHART -->
     <div
-      class="bg-white/10 rounded-2xl p-5 shadow-lg backdrop-blur-md border border-white/10 hover:shadow-xl transition-all duration-300">
-      <h3 class="text-lg font-semibold mb-3 text-yellow-300">Upload Frequency</h3>
-      <canvas #barChart></canvas>
+      class="bg-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-md border border-white/10 hover:scale-105 transition-all duration-500">
+      <h3 class="text-lg font-semibold mb-4 text-yellow-300">Upload Frequency</h3>
+      <div class="h-[260px] flex justify-center items-center">
+        <canvas #barChart></canvas>
+      </div>
     </div>
 
+    <!-- LINE CHART -->
     <div
-      class="bg-white/10 rounded-2xl p-5 shadow-lg backdrop-blur-md border border-white/10 hover:shadow-xl transition-all duration-300">
-      <h3 class="text-lg font-semibold mb-3 text-yellow-300">Memory Trend</h3>
-      <canvas #lineChart></canvas>
+      class="bg-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-md border border-white/10 hover:scale-110 transition-all duration-500">
+      <h3 class="text-lg font-semibold mb-4 text-yellow-300">Memory Trend</h3>
+      <div class="h-[260px] flex justify-center items-center">
+        <canvas #lineChart></canvas>
+      </div>
     </div>
   </section>
 
-  <!-- Recent Memories Section -->
-  <section class="px-8 pb-10 z-10">
-    <h2 class="text-2xl font-bold mb-5 drop-shadow-lg">🧾 Recent Memories</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-5">
+  <!-- RECENT MEMORIES -->
+  <section class="px-8 pb-16 z-10">
+    <h2 class="text-2xl font-bold mb-6 drop-shadow-lg">🧾 Recent Memories</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
       <div *ngFor="let memory of recentMemories"
-        class="bg-gradient-to-br from-indigo-600 to-purple-600 p-5 rounded-xl hover:scale-105 hover:shadow-xl 
-               transition-transform duration-300 cursor-pointer backdrop-blur-md border border-white/10">
+        class="bg-gradient-to-br from-indigo-600 to-purple-600 p-5 rounded-2xl hover:scale-105 hover:shadow-2xl hover:shadow-pink-400/30 transition-all duration-300 cursor-pointer backdrop-blur-md border border-white/10 relative overflow-hidden">
 
-        <h3 class="font-bold text-lg truncate">{{ memory.title }}</h3>
-        <p class="text-sm opacity-80 mt-1">{{ memory.category === 'other' ? memory.customCategory : memory.category }}</p>
-        <p class="text-xs opacity-70 mt-2 line-clamp-2">{{ memory.description }}</p>
-        <p class="text-[11px] opacity-50 mt-2">{{ memory.createdAt | date:'short' }}</p>
+        <div class="absolute inset-0 bg-white/5 blur-2xl opacity-20"></div>
 
-        <div class="flex justify-end mt-3">
-          <button
-            class="px-3 py-1 text-xs rounded-full bg-yellow-400 text-indigo-950 font-semibold hover:scale-110 transition-all duration-300">
-            View
-          </button>
+        <div class="relative z-10">
+           <h3 class="font-bold text-xl text-white tracking-wide flex items-center gap-2">
+    <span class="text-yellow-300">✨</span>
+    <span class="bg-gradient-to-r from-yellow-200 to-yellow-400 bg-clip-text text-transparent">
+      {{ memory.title }}
+    </span>
+  </h3>
+
+  <!-- Category -->
+  <p class="inline-flex items-center gap-2 text-sm font-medium px-3 py-1
+            rounded-lg bg-indigo-600/30 border border-indigo-400/30 text-indigo-200 shadow-sm">
+    🏷️ {{ memory.category === 'other' ? memory.customCategory : memory.category }}
+  </p>
+
+  <!-- Description -->
+  <p class="text-sm leading-relaxed text-gray-200/90 bg-white/5 rounded-xl p-3 shadow-inner italic">
+    {{ memory.description }}
+  </p>
+
+  <!-- Date -->
+  <p class="text-xs font-semibold text-gray-300 flex items-center gap-2">
+    <span class="text-green-400">⏰</span>
+    {{ memory.createdAt | date:'mediumDate' }} • {{ memory.createdAt | date:'shortTime' }}
+  </p>
+
+          <div class="flex justify-end mt-3">
+            <button
+              class="px-3 py-1 text-xs rounded-full bg-yellow-400 text-indigo-950 font-semibold hover:scale-110 transition-all duration-300">
+              View
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Floating Call-to-Action -->
-  
-
   <!-- Footer -->
-  <footer class="text-center py-6 text-sm opacity-70 mt-10 z-10">
+  <footer class="text-center py-6 text-sm opacity-70 mt-8 z-10">
     © 2025 Memory Care • Designed with 💜 for Compassion
   </footer>
 </div>

@@ -22,11 +22,12 @@ export const routes: Routes = [
         path: 'upload',
         loadComponent: () => import('./add-memory/add-memory').then((m) => m.AddMemoryComponent),
       },
-      // {
-      //   path: 'search',
-      //   loadComponent: () =>
-      //     import('./search/search.component').then((m) => m.SearchComponent),
-      // },
+      {
+        path: 'photocontacts',
+        loadComponent: () =>
+          import('./photocontact/photocontact').then((m) => m.PhotoContactsComponent),
+        data: { label: 'Photo contacts', route: '/photocontacts', icon: '📞' },
+      },
       // {
       //   path: 'connect-family',
       //   loadComponent: () =>
