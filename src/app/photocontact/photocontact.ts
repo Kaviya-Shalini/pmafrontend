@@ -10,7 +10,7 @@ import { BehaviorSubject } from 'rxjs';
 @Component({
   selector: 'app-photo-contacts',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, HttpClientModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule],
   templateUrl: './photocontact.html',
   styleUrls: ['./photocontact.css'],
 })

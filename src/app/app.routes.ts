@@ -4,6 +4,8 @@ import { AuthComponent } from './auth/auth';
 import { AddMemoryComponent } from './add-memory/add-memory';
 import { AppLayoutComponent } from './app-layout/app-layout';
 import { DashboardComponent } from './dashboard/dashboard';
+import { MyPeopleComponent } from './mypeople/mypeople';
+import { MemoriesComponent } from './memories/memories';
 export const routes: Routes = [
   // Public routes
   { path: '', component: WelcomepmaComponent },
@@ -26,15 +28,14 @@ export const routes: Routes = [
         path: 'photocontacts',
         loadComponent: () =>
           import('./photocontact/photocontact').then((m) => m.PhotoContactsComponent),
-        data: { label: 'Photo contacts', route: '/photocontacts', icon: '📞' },
       },
-      // {
-      //   path: 'connect-family',
-      //   loadComponent: () =>
-      //     import('./connect-family/connect-family.component').then(
-      //       (m) => m.ConnectFamilyComponent
-      //     ),
-      // },
+      { path: 'mypeople', component: MyPeopleComponent },
+
+      {
+        path: 'connect-family',
+        loadComponent: () =>
+          import('./connectfamily/connectfamily').then((m) => m.ConnectFamilyComponent),
+      },
       // {
       //   path: 'location',
       //   loadComponent: () =>
@@ -43,6 +44,7 @@ export const routes: Routes = [
       //     ),
       // },
       { path: 'add-memory', component: AddMemoryComponent },
+      { path: 'memories', component: MemoriesComponent },
     ],
   },
 

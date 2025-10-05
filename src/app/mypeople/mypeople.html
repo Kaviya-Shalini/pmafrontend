@@ -1,0 +1,116 @@
+<!-- My People Component -->
+<div class="min-h-screen w-full flex flex-col 
+            bg-gradient-to-tr from-indigo-950 via-purple-950 to-pink-950 
+            text-white relative overflow-hidden rounded-3xl">
+
+  <!-- Floating Background Glows (matching Dashboard) -->
+  <div class="absolute top-20 left-10 w-[400px] h-[400px] bg-pink-500 opacity-30 blur-[160px] animate-pulse-slow"></div>
+  <div class="absolute bottom-20 right-10 w-[400px] h-[400px] bg-indigo-400 opacity-20 blur-[180px] animate-pulse-slow"></div>
+
+  <!-- Content Container -->
+  <div class="z-10 px-6 py-16 max-w-6xl mx-auto w-full">
+
+    <!-- Header -->
+    <div class="mb-6 flex flex-col md:flex-row justify-between items-start gap-4">
+      <div>
+        <h1 class="text-3xl font-extrabold tracking-tight">📸 My People</h1>
+        <p class="text-sm text-slate-300/80 mt-1">Add, view and search your photos easily.</p>
+      </div>
+
+      <!-- Search -->
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <input type="text" [(ngModel)]="searchTerm"
+               (keyup.enter)="onSearch()"
+               placeholder="Search captions..."
+               class="w-full md:w-80 px-3 py-2 rounded-lg bg-white/5 border border-white/10 placeholder:text-slate-300/60 
+                      focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition duration-300 outline-none" />
+        <button (click)="onSearch()" class="px-4 py-2 rounded-lg bg-amber-400 text-slate-900 font-semibold shadow hover:scale-110 transition">
+          Search
+        </button>
+      </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Add Photo Form -->
+      <div class="col-span-1 bg-white/10 p-5 rounded-2xl border border-white/10 shadow-xl backdrop-blur-md">
+        <h2 class="text-lg font-bold mb-3">Add Photo</h2>
+        <form [formGroup]="form" (ngSubmit)="addPhoto()" class="space-y-3">
+
+          <!-- Caption -->
+          <div>
+            <label class="block text-sm text-slate-300 mb-1">Caption</label>
+            <input formControlName="caption" type="text"
+                   class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 
+                          focus:ring-2 focus:ring-pink-400 focus:border-pink-400 outline-none" 
+                   placeholder="Enter caption" />
+          </div>
+
+          <!-- Upload Photo -->
+          <div>
+            <label class="block text-sm text-slate-300 mb-2">Photo</label>
+            <div class="flex items-center gap-3">
+              <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10">
+                <input type="file" accept="image/*" (change)="onFileChange($event)" class="hidden" />
+                <span>Upload</span>
+              </label>
+              <div class="w-20 h-20 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
+                <img *ngIf="previewUrl" [src]="previewUrl" class="object-cover w-full h-full" alt="preview" />
+                <div *ngIf="!previewUrl" class="text-slate-300/60 text-xs text-center p-1">Preview</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Buttons -->
+          <div class="flex items-center gap-3 mt-3">
+            <button type="submit" [disabled]="uploading"
+                    class="flex-1 px-4 py-2 rounded-lg bg-emerald-400 text-slate-900 font-semibold shadow hover:scale-105 transition">
+              {{ uploading ? 'Adding...' : 'Add Photo' }}
+            </button>
+            <button type="button" (click)="resetForm()"
+                    class="px-4 py-2 rounded-lg bg-white/10 text-white border border-white/10 hover:scale-105 transition">
+              Reset
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Your Photos -->
+      <div class="lg:col-span-2 bg-white/10 p-5 rounded-2xl border border-white/10 shadow-xl backdrop-blur-md">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-bold">Your Photos</h2>
+          <p class="text-sm text-slate-300/80">Showing {{ photos.length }} on this page • {{ total }} total</p>
+        </div>
+
+        <!-- Photo Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <ng-container *ngFor="let p of photos">
+            <div class="bg-white/5 p-2 rounded-xl border border-white/10 shadow hover:scale-105 transition">
+              <img [src]="p.photoUrl" alt="{{ p.caption }}" class="w-full h-48 object-cover rounded-lg" />
+              <div class="mt-2 text-sm text-white font-semibold truncate">{{ p.caption }}</div>
+              <div class="text-[11px] text-slate-400">{{ p.createdAt | date:'short' }}</div>
+            </div>
+          </ng-container>
+        </div>
+
+        <!-- Pagination -->
+        <div class="mt-5 flex items-center justify-between">
+          <div class="text-sm text-slate-300">Page {{ page + 1 }} of {{ totalPages }}</div>
+          <div class="flex items-center gap-2">
+            <button (click)="prevPage()" [disabled]="page === 0"
+                    class="px-3 py-1 rounded-lg bg-white/10 hover:scale-110 transition">Prev</button>
+            <button (click)="nextPage()" [disabled]="(page+1)*size >= total"
+                    class="px-3 py-1 rounded-lg bg-white/10 hover:scale-110 transition">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Message -->
+    <div *ngIf="toastVisible"
+         class="fixed right-6 bottom-6 bg-emerald-500 text-slate-900 px-4 py-2 rounded-lg shadow-lg z-50">
+      {{ toastMessage }}
+    </div>
+  </div>
+</div>
