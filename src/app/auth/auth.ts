@@ -44,7 +44,7 @@ export class AuthComponent {
             this.loading = false;
             if (res.success && res.userId) {
               localStorage.setItem('pma-userId', res.userId);
-              // --- STORE THE NEW FLAG ---
+              localStorage.setItem('pma-username', formValue.username); // <-- ADD THIS LINE
               localStorage.setItem('pma-quickQuestionAnswered', String(res.quickQuestionAnswered));
               this.successMessage = 'Login successful!';
               setTimeout(() => this.router.navigate(['/dashboard']), 1000);

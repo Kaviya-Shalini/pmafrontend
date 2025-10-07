@@ -60,20 +60,32 @@ export class ConnectFamilyComponent implements OnInit {
     this.pollMessages();
   }
 
+  // in src/app/connectfamily/connectfamily.ts
+
   fetchCurrentUser() {
-    this.http.get<User>('http://localhost:8080/api/user/current').subscribe((res) => {
+    const userId = localStorage.getItem('pma-userId');
+    if (!userId) {
+      console.error('User ID not found, cannot fetch user data.');
+      return;
+    }
+    this.http.get<User>(`http://localhost:8080/api/user/${userId}`).subscribe((res) => {
       this.user = res;
       this.fetchFamilyMembers();
-      this.loadMemories();
+      this.loadMemories(); // This will now work correctly
     });
   }
+
+  // in src/app/connectfamily/connectfamily.ts
 
   loadMemories() {
     if (!this.user) return;
     this.http
-      .get<any[]>(`http://localhost:8080/api/memories/user/${this.user.userId}`)
-      .subscribe((res) => {
-        this.memories = res;
+      .get<any>(
+        `http://localhost:8080/api/memories/user/${this.user.userId}?page=${this.page}&size=${this.size}&search=${this.searchTerm}`
+      )
+      .subscribe((res: any) => {
+        this.memories = res.content || []; // <-- Correctly assign the content array
+        this.totalPages = res.totalPages || 1;
       });
   }
 
@@ -126,26 +138,64 @@ export class ConnectFamilyComponent implements OnInit {
     this.selectedMember = member;
     this.showChatModal = true;
     member.unread = 0;
-  }
 
-  closeChat() {
-    this.showChatModal = false;
-    this.selectedMember = null;
+    // Fetch the full conversation history when a chat is opened
+    this.http
+      .get<ChatMessage[]>(`http://localhost:8080/api/chat/conversation?other=${member.username}`)
+      .subscribe((res) => {
+        this.chats[member.username] = res;
+      });
   }
 
   sendMessage() {
     if (!this.selectedMember || !this.newMessage.trim() || !this.user) return;
     const message = this.newMessage.trim();
-    this.http
-      .post('http://localhost:8080/api/chat/send', { to: this.selectedMember.username, message })
-      .subscribe(() => {
-        this.chats[this.selectedMember!.username].push({
-          sender: this.user?.username!,
-          message,
-          createdAt: new Date(),
-        });
-        this.newMessage = '';
+    const to = this.selectedMember.username;
+
+    this.http.post('http://localhost:8080/api/chat/send', { to, message }).subscribe(() => {
+      // Add the message to the chat window immediately
+      if (!this.chats[to]) {
+        this.chats[to] = [];
+      }
+      this.chats[to].push({
+        sender: this.user?.username!,
+        message,
+        createdAt: new Date(),
       });
+      this.newMessage = '';
+    });
+  }
+
+  pollMessages() {
+    timer(0, 5000).subscribe(() => {
+      this.http.get<ChatMessage[]>('http://localhost:8080/api/chat/receive').subscribe((res) => {
+        res.forEach((msg) => {
+          if (!this.chats[msg.sender]) this.chats[msg.sender] = [];
+          // Use a more reliable check to see if the message already exists
+          const exists = this.chats[msg.sender].some(
+            (m) =>
+              m.message === msg.message &&
+              new Date(m.createdAt).getTime() === new Date(msg.createdAt).getTime()
+          );
+          if (!exists) {
+            this.chats[msg.sender].push(msg);
+            const member = this.familyMembers.find((m) => m.username === msg.sender);
+            if (
+              member &&
+              (!this.selectedMember || this.selectedMember.username !== member.username)
+            ) {
+              member.unread = (member.unread || 0) + 1;
+              this.toast(`New message from ${member.username}`);
+            }
+          }
+        });
+      });
+    });
+  }
+
+  closeChat() {
+    this.showChatModal = false;
+    this.selectedMember = null;
   }
 
   deleteMessage(member: FamilyMember, message: ChatMessage) {
@@ -166,30 +216,6 @@ export class ConnectFamilyComponent implements OnInit {
         this.chats[member.username] = [];
         this.toast('All chats cleared.');
       });
-  }
-
-  pollMessages() {
-    timer(0, 5000).subscribe(() => {
-      this.http.get<ChatMessage[]>('http://localhost:8080/api/chat/receive').subscribe((res) => {
-        res.forEach((msg) => {
-          if (!this.chats[msg.sender]) this.chats[msg.sender] = [];
-          const exists = this.chats[msg.sender].some(
-            (m) => m.createdAt.toString() === msg.createdAt.toString()
-          );
-          if (!exists) {
-            this.chats[msg.sender].push(msg);
-            const member = this.familyMembers.find((m) => m.username === msg.sender);
-            if (
-              member &&
-              (!this.selectedMember || this.selectedMember.username !== member.username)
-            ) {
-              member.unread = (member.unread || 0) + 1;
-              this.toast(`New message from ${member.username}`);
-            }
-          }
-        });
-      });
-    });
   }
 
   // ------------------- Memory Functions -------------------
@@ -267,6 +293,8 @@ export class ConnectFamilyComponent implements OnInit {
     this.toastVisible = true;
     setTimeout(() => (this.toastVisible = false), 3000);
   }
+  // in src/app/connectfamily/connectfamily.ts
+
   nextPage() {
     if (this.page + 1 < this.totalPages) {
       this.page++;
