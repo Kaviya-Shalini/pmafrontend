@@ -47,7 +47,7 @@ export class AuthComponent {
               // --- STORE THE NEW FLAG ---
               localStorage.setItem('pma-quickQuestionAnswered', String(res.quickQuestionAnswered));
               this.successMessage = 'Login successful!';
-              setTimeout(() => this.router.navigate(['/add-memory']), 1000);
+              setTimeout(() => this.router.navigate(['/dashboard']), 1000);
             } else {
               this.errorMessage = res.message || 'Invalid credentials.';
             }

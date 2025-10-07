@@ -1,56 +1,152 @@
-<div class="min-h-screen w-full flex flex-col bg-gradient-to-tr from-indigo-950 via-purple-950 to-pink-950 text-white relative overflow-hidden rounded-3xl">
+<div
+  class="min-h-screen w-full flex flex-col bg-gradient-to-tr from-indigo-950 via-purple-950 to-pink-950 text-white relative overflow-hidden rounded-3xl font-inter">
 
   <!-- Floating Glows -->
-  <div class="absolute top-20 left-10 w-[400px] h-[400px] bg-pink-500 opacity-30 blur-[160px] animate-pulse-slow"></div>
+  <div class="absolute top-20 left-10 w-[400px] h-[400px] bg-pink-500 opacity-25 blur-[160px] animate-pulse-slow"></div>
   <div class="absolute bottom-20 right-10 w-[400px] h-[400px] bg-indigo-400 opacity-20 blur-[180px] animate-pulse-slow"></div>
 
   <!-- Header -->
   <header class="flex justify-between items-center p-8 z-10">
-    <h1 class="text-4xl font-extrabold drop-shadow-lg">📚 Your Memories</h1>
+    <h1 class="text-4xl font-extrabold drop-shadow-lg tracking-wide">📚 Your Memories</h1>
     <div class="flex items-center gap-4">
-      <input [(ngModel)]="searchTerm" placeholder="Search memories..." 
-             class="px-4 py-2 rounded-xl bg-white/10 border border-white/20 placeholder-white/70 outline-none focus:ring-2 focus:ring-pink-400 transition" />
-      <button (click)="searchMemories()" class="px-5 py-2 bg-gradient-to-r from-pink-600 to-purple-700 rounded-xl shadow-md hover:scale-105 transition">
+      <input [(ngModel)]="searchTerm"
+        placeholder="Search memories..."
+        class="px-5 py-2.5 rounded-xl bg-white/10 border border-white/20 placeholder-white/70 outline-none focus:ring-2 focus:ring-pink-400 focus:bg-white/15 transition-all duration-300 shadow-inner" />
+      <button (click)="searchMemories()"
+        class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-600 via-purple-600 to-purple-600 text-white font-semibold shadow-md hover:scale-105 hover:shadow-lg transition-all duration-300">
         🔍 Search
       </button>
     </div>
   </header>
 
   <!-- Memory Cards -->
-  <section class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 px-8 mb-16 z-10">
-    <div *ngFor="let memory of memories"
-         (click)="openMemory(memory)"
-         class="bg-gradient-to-br from-indigo-700 to-purple-700 p-6 rounded-2xl shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer relative overflow-hidden">
-      <div class="absolute inset-0 bg-white/10 blur-2xl opacity-20"></div>
+  <section
+    class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 px-8 mb-16 z-10">
+    <div *ngFor="let memory of memories" (click)="openMemory(memory)"
+      class="relative bg-gradient-to-br from-purple-700/50 via-purple-700/50 to-purple-700/60 backdrop-blur-md p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.3)] hover:scale-105 hover:shadow-[0_0_30px_rgb(255,105,180,0.5)] transition-all duration-300 cursor-pointer overflow-hidden group">
+      <div class="absolute inset-0 bg-white/10 blur-2xl opacity-10 group-hover:opacity-30 transition"></div>
       <div class="relative z-10">
-        <h3 class="text-2xl font-bold text-yellow-300 mb-2">{{ memory.title }}</h3>
-        <p class="text-sm bg-indigo-600/40 px-3 py-1 rounded-full w-fit mb-3">🏷️ {{ memory.category }}</p>
-        <p class="text-gray-200/90 text-sm line-clamp-3">{{ memory.description }}</p>
+        <h3 class="text-2xl font-bold text-yellow-300 mb-2 drop-shadow-md">{{ memory.title }}</h3>
+        <p
+          class="text-sm bg-indigo-600/50 backdrop-blur-md px-3 py-1 rounded-full w-fit mb-3 shadow-inner">
+          🏷️ {{ memory.category }}
+        </p>
+        <p class="text-gray-200/90 text-sm line-clamp-3 leading-relaxed">{{ memory.description }}</p>
         <p class="text-xs mt-3 text-gray-400">{{ memory.createdAt | date:'medium' }}</p>
+        <div class="flex justify-end mt-3">
+            <button
+              class="px-3 py-1 text-xs rounded-full bg-yellow-400 text-indigo-950 font-semibold hover:scale-110 transition-all duration-300">
+              View
+            </button>
+          </div>
       </div>
     </div>
   </section>
 
   <!-- Pagination -->
-  <div class="flex justify-center items-center gap-4 pb-10">
-    <button (click)="prevPage()" [disabled]="page===0" class="px-4 py-2 rounded-xl bg-pink-600 hover:scale-105 transition">Prev</button>
-    <span class="font-semibold">{{ page + 1 }} / {{ totalPages }}</span>
-    <button (click)="nextPage()" [disabled]="page+1 >= totalPages" class="px-4 py-2 rounded-xl bg-pink-600 hover:scale-105 transition">Next</button>
+  <div class="flex justify-center items-center gap-4 pb-10 z-10">
+    <button (click)="prevPage()" [disabled]="page===0"
+      class="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-600 to-purple-700 shadow-md hover:scale-105 transition disabled:opacity-50">
+      Prev
+    </button>
+    <span class="font-semibold text-lg tracking-wide">{{ page + 1 }} / {{ totalPages }}</span>
+    <button (click)="nextPage()" [disabled]="page+1 >= totalPages"
+      class="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-700 to-pink-700 shadow-md hover:scale-105 transition disabled:opacity-50">
+      Next
+    </button>
   </div>
 
-  <!-- Modal View -->
-  <div *ngIf="selectedMemory" class="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50">
-    <div class="bg-gradient-to-br from-purple-900 to-indigo-900 p-10 rounded-3xl w-[90%] md:w-[50%] shadow-2xl relative">
-      <button (click)="closeModal()" class="absolute top-4 right-4 text-white text-2xl">✖️</button>
-      <h2 class="text-3xl font-bold mb-3 text-yellow-300">{{ selectedMemory.title }}</h2>
-      <p class="text-sm mb-3">🏷️ Category: {{ selectedMemory.category }}</p>
-      <p class="text-sm mb-6 italic">{{ selectedMemory.description }}</p>
+ <!-- 🌈 Memory View Modal -->
+<div *ngIf="selectedMemory"
+     class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in"
+     (click)="closeModal()">
 
-      <div class="flex flex-col gap-4">
-        <button (click)="downloadFile(selectedMemory._id)" class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700">⬇️ Download File</button>
-        <button (click)="downloadVoice(selectedMemory._id)" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700">🎤 Download Voice</button>
+  <div (click)="$event.stopPropagation()"
+       class="relative w-[90%] sm:w-[70%] md:w-[45%] bg-gradient-to-br from-indigo-950 via-purple-900 to-pink-900 rounded-3xl shadow-[0_0_60px_rgba(255,105,180,0.4)] border border-white/10 overflow-hidden transition-all duration-500">
+    
+    <!-- ✖️ Close Button -->
+    <button type="button" (click)="closeModal()"
+        class="absolute top-5 right-5 z-20 w-10 h-10 rounded-full flex items-center justify-center 
+               bg-white/10 hover:bg-pink-500/20 text-white text-xl backdrop-blur-md 
+               transition-all duration-300 hover:scale-110 shadow-md">
+  ✖️
+</button>
+
+    <!-- 🌸 Decorative Glow -->
+    <div class="absolute top-0 left-0 w-40 h-40 bg-pink-500 opacity-20 blur-[100px]"></div>
+    <div class="absolute bottom-0 right-0 w-40 h-40 bg-indigo-400 opacity-20 blur-[100px]"></div>
+
+    <!-- 📖 Memory Content -->
+    <div class="relative z-10 p-8 text-white">
+      <div class="text-center mb-6">
+        <h2 class="text-3xl font-bold text-yellow-300 tracking-wide drop-shadow-md mb-3">
+          {{ selectedMemory.title }}
+        </h2>
+        <p class="text-sm text-gray-300 mb-2">
+          🏷️ <span class="text-white font-medium">{{ selectedMemory.category }}</span>
+        </p>
+        <p class="text-gray-200/90 italic leading-relaxed">
+          {{ selectedMemory.description }}
+        </p>
+      </div>
+
+      <!-- 📎 Attachments -->
+      <div class="flex flex-col gap-4 mt-6">
+        <button *ngIf="selectedMemory.filePath"
+          (click)="downloadFile(selectedMemory.id)"
+          class="flex items-center justify-center gap-3 px-6 py-3 rounded-2xl 
+                 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 
+                 shadow-md hover:scale-105 hover:shadow-pink-500/50 
+                 transition-all duration-300 font-semibold text-white">
+          ⬇️ <span>Download Attached File</span>
+        </button>
+        <p *ngIf="!selectedMemory.filePath" class="text-center text-gray-400 italic">
+          📁 No file was uploaded.
+        </p>
+
+        <button *ngIf="selectedMemory.voicePath"
+          (click)="downloadVoice(selectedMemory.id)"
+          class="flex items-center justify-center gap-3 px-6 py-3 rounded-2xl 
+                 bg-gradient-to-r from-indigo-600 via-purple-700 to-pink-600 
+                 shadow-md hover:scale-105 hover:shadow-indigo-500/50 
+                 transition-all duration-300 font-semibold text-white">
+          🎧 <span>Play or Download Voice Note</span>
+        </button>
+        <p *ngIf="!selectedMemory.voicePath" class="text-center text-gray-400 italic">
+          🎤 No voice note uploaded.
+        </p>
+      </div>
+
+      <!-- 🗑️ Delete Button -->
+      <div class="flex justify-center mt-8">
+        <button (click)="confirmDelete(selectedMemory.id)"
+          class="flex items-center justify-center gap-3 px-8 py-3 rounded-2xl 
+                 bg-gradient-to-r from-red-600 via-pink-700 to-purple-800 
+                 shadow-lg hover:scale-105 hover:shadow-red-500/40 
+                 transition-all duration-300 font-semibold text-white">
+          🗑️ Delete Memory
+        </button>
       </div>
     </div>
   </div>
+</div>
+
+  <!-- Delete Confirmation Modal -->
+<div *ngIf="showConfirmDialog" class="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+  <div class="bg-gradient-to-br from-indigo-950 via-purple-900 to-pink-900 text-white p-6 rounded-2xl w-96 shadow-[0_0_25px_rgba(255,105,180,0.4)] text-center border border-white/10">
+    <h2 class="text-xl font-semibold mb-5 text-pink-400">Are you sure you want to delete this memory?</h2>
+    <div class="flex justify-center gap-4">
+      <button (click)="deleteMemory(confirmedMemoryId)" 
+              class="px-5 py-2 rounded-xl bg-gradient-to-r from-red-600 via-pink-700 to-purple-800 text-white font-semibold hover:scale-105 transition-all duration-300">
+        Yes, Delete
+      </button>
+      <button (click)="cancelDelete()" 
+              class="px-5 py-2 rounded-xl bg-gray-600 hover:bg-gray-700 text-white font-semibold transition-all duration-300">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
 
 </div>
+ 

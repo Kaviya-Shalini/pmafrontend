@@ -84,15 +84,32 @@
         </div>
 
         <!-- Photo Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          <ng-container *ngFor="let p of photos">
-            <div class="bg-white/5 p-2 rounded-xl border border-white/10 shadow hover:scale-105 transition">
-              <img [src]="p.photoUrl" alt="{{ p.caption }}" class="w-full h-48 object-cover rounded-lg" />
-              <div class="mt-2 text-sm text-white font-semibold truncate">{{ p.caption }}</div>
-              <div class="text-[11px] text-slate-400">{{ p.createdAt | date:'short' }}</div>
-            </div>
-          </ng-container>
-        </div>
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+  <ng-container *ngFor="let p of photos">
+    <div class="relative bg-white/5 p-2 rounded-xl border border-white/10 shadow hover:scale-105 transition group">
+
+      <!-- Delete Button (appears on hover) -->
+      <button (click)="deletePhoto(p.id)"
+              class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300
+                     bg-red-500/80 hover:bg-red-600 text-white p-2 rounded-full shadow-md"
+              title="Delete Photo">
+        🗑️
+      </button>
+
+      <!-- Photo -->
+      <img [src]="'http://localhost:8080' + p.photoUrl"
+           alt="{{ p.caption }}"
+           class="w-full h-48 object-cover rounded-lg cursor-pointer"
+           (click)="openImage('http://localhost:8080' + p.photoUrl)" />
+
+      <!-- Caption & Date -->
+      <div class="mt-2 text-sm text-white font-semibold truncate">{{ p.caption }}</div>
+      <div class="text-[11px] text-slate-400">{{ p.createdAt | date:'short' }}</div>
+    </div>
+  </ng-container>
+</div>
+
+
 
         <!-- Pagination -->
         <div class="mt-5 flex items-center justify-between">
@@ -106,6 +123,21 @@
         </div>
       </div>
     </div>
+    <!-- Fullscreen Image Modal -->
+<div *ngIf="modalImageUrl" 
+     class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+  <div class="relative">
+    <!-- Close Button -->
+    <button (click)="closeImage()"
+            class="absolute -top-3 -right-3 bg-red-500 text-white w-8 h-8 rounded-full 
+                   flex items-center justify-center hover:bg-red-600 transition">
+      ✕
+    </button>
+    <img [src]="modalImageUrl" 
+         class="max-h-[80vh] max-w-[80vw] rounded-lg shadow-2xl border-4 border-white/20" 
+         alt="Full view" />
+  </div>
+</div>
 
     <!-- Toast Message -->
     <div *ngIf="toastVisible"

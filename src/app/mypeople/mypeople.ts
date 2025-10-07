@@ -20,6 +20,8 @@ interface PhotoEntry {
 export class MyPeopleComponent implements OnInit {
   private http = inject(HttpClient);
   fb = inject(FormBuilder);
+  editingPhotoId: number | null = null;
+  modalImageUrl: string | null = null;
 
   form: FormGroup;
   photos: PhotoEntry[] = [];
@@ -38,6 +40,15 @@ export class MyPeopleComponent implements OnInit {
       photo: [null],
     });
   }
+  // Open full image
+  openImage(url: string) {
+    this.modalImageUrl = url;
+  }
+
+  // Close full image
+  closeImage() {
+    this.modalImageUrl = null;
+  }
 
   ngOnInit(): void {
     this.loadPhotos();
@@ -54,27 +65,77 @@ export class MyPeopleComponent implements OnInit {
     }
   }
 
-  // Add photo
-  addPhoto() {
-    if (!this.form.value.photo) return;
-
-    const formData = new FormData();
-    formData.append('photo', this.form.value.photo);
-    formData.append('caption', this.form.value.caption);
-
-    this.uploading = true;
-    this.http.post<any>('http://localhost:8080/api/mypeople', formData).subscribe({
-      next: (res) => {
-        this.showToast('Photo added successfully!');
-        this.resetForm();
-        this.loadPhotos();
-        this.uploading = false;
-      },
-      error: () => {
-        this.showToast('Failed to add photo');
-        this.uploading = false;
-      },
+  // Edit photo
+  editPhoto(photo: PhotoEntry) {
+    this.editingPhotoId = photo.id;
+    this.form.patchValue({
+      caption: photo.caption,
+      photo: null, // we don’t replace the photo until user uploads a new one
     });
+    this.previewUrl = photo.photoUrl; // show existing photo as preview
+  }
+
+  // Delete photo
+  deletePhoto(id: number) {
+    if (!confirm('Are you sure you want to delete this photo?')) return;
+
+    this.http.delete(`http://localhost:8080/api/mypeople/${id}`).subscribe({
+      next: () => {
+        this.showToast('Photo deleted successfully!');
+        this.loadPhotos();
+        // reset form if the deleted photo was being edited
+        if (this.editingPhotoId === id) this.resetForm();
+      },
+      error: () => this.showToast('Failed to delete photo'),
+    });
+  }
+
+  // Updated addPhoto to handle editing
+  addPhoto() {
+    if (this.editingPhotoId) {
+      // Update existing photo
+      const formData = new FormData();
+      formData.append('caption', this.form.value.caption);
+      if (this.form.value.photo) formData.append('photo', this.form.value.photo);
+
+      this.uploading = true;
+      this.http
+        .put(`http://localhost:8080/api/mypeople/${this.editingPhotoId}`, formData)
+        .subscribe({
+          next: () => {
+            this.showToast('Photo updated successfully!');
+            this.resetForm();
+            this.loadPhotos();
+            this.uploading = false;
+            this.editingPhotoId = null;
+          },
+          error: () => {
+            this.showToast('Failed to update photo');
+            this.uploading = false;
+          },
+        });
+    } else {
+      // Add new photo
+      if (!this.form.value.photo) return;
+
+      const formData = new FormData();
+      formData.append('photo', this.form.value.photo);
+      formData.append('caption', this.form.value.caption);
+
+      this.uploading = true;
+      this.http.post(`http://localhost:8080/api/mypeople`, formData).subscribe({
+        next: () => {
+          this.showToast('Photo added successfully!');
+          this.resetForm();
+          this.loadPhotos();
+          this.uploading = false;
+        },
+        error: () => {
+          this.showToast('Failed to add photo');
+          this.uploading = false;
+        },
+      });
+    }
   }
 
   // Load photos with pagination
@@ -98,6 +159,7 @@ export class MyPeopleComponent implements OnInit {
   resetForm() {
     this.form.reset();
     this.previewUrl = null;
+    this.editingPhotoId = null;
   }
 
   prevPage() {

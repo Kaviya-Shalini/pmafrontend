@@ -24,13 +24,14 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   today: Date = new Date();
   reminders: any[] = [];
   activeChart: 'bar' | 'line' | 'pie' = 'bar';
-
+  motivationMessage: string = '';
   private charts: Chart[] = [];
 
   constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
     this.loadUser();
+    this.setMotivationMessage();
   }
 
   ngAfterViewInit(): void {
@@ -46,7 +47,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.today.toLocaleDateString('en-US', options);
   }
 
-  getMotivationMessage(): string {
+  setMotivationMessage(): void {
     const messages = [
       '✨ Keep going, you’re stronger than you think!',
       '🌸 One step at a time, you’re making progress.',
@@ -54,10 +55,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       '💪 Believe in yourself, you’ve got this!',
       '🌈 Every memory matters—cherish today!',
     ];
-    // Pick a random motivational message
-    return messages[Math.floor(Math.random() * messages.length)];
+    // Pick a random motivational message and assign it to the property
+    this.motivationMessage = messages[Math.floor(Math.random() * messages.length)];
   }
-
   loadUser() {
     const userId = localStorage.getItem('pma-userId');
     if (userId) {

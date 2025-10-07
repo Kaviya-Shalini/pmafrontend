@@ -13,13 +13,20 @@ export interface PhotoContact {
 
 @Injectable({ providedIn: 'root' })
 export class PhotoContactsService {
-  private base = '/api/photocontacts';
+  private base = 'http://localhost:8080/api/photocontacts';
 
   constructor(private http: HttpClient) {}
 
   // Add contact (FormData expected)
   addContact(formData: FormData): Observable<PhotoContact> {
     return this.http.post<PhotoContact>(this.base, formData);
+  }
+  // photoContactService.ts
+  updateContact(id: string, formData: FormData): Observable<PhotoContact> {
+    return this.http.put<PhotoContact>(`${this.base}/${id}`, formData);
+  }
+  deleteContact(id: string) {
+    return this.http.delete(`${this.base}/${id}`);
   }
 
   // Get contacts with pagination and search

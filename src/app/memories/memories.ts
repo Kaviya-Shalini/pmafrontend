@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
+import { ToastrService } from 'ngx-toastr';
 @Component({
   selector: 'app-memories',
   standalone: true,
@@ -19,8 +19,10 @@ export class MemoriesComponent implements OnInit {
   page: number = 0;
   size: number = 8;
   totalPages: number = 0;
+  showConfirmDialog: boolean = false;
+  confirmedMemoryId: string = '';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private toastr: ToastrService) {}
 
   ngOnInit(): void {
     this.loadMemories();
@@ -101,6 +103,40 @@ export class MemoriesComponent implements OnInit {
         const url = window.URL.createObjectURL(blob);
         const audio = new Audio(url);
         audio.play().catch((err) => console.error('Audio play error:', err));
+      });
+  }
+  // 🔹 Show delete confirmation
+  confirmDelete(memoryId: string) {
+    this.confirmedMemoryId = memoryId;
+    this.showConfirmDialog = true;
+    this.selectedMemory = null; // hide the details modal
+  }
+
+  // 🔹 Cancel delete
+  cancelDelete() {
+    this.showConfirmDialog = false;
+    this.confirmedMemoryId = '';
+  }
+  deleteMemory(memoryId: string): void {
+    this.http
+      .delete<{ success: boolean; message: string }>(
+        `http://localhost:8080/api/memories/${memoryId}`
+      )
+      .subscribe({
+        next: (res) => {
+          if (res.success) {
+            this.memories = this.memories.filter((m) => m.id !== memoryId);
+            if (this.selectedMemory?.id === memoryId) this.selectedMemory = null;
+            this.toastr.success(res.message, 'Deleted');
+          } else {
+            this.toastr.error(res.message, 'Error');
+          }
+          this.cancelDelete();
+        },
+        error: (err) => {
+          this.toastr.error('Failed to delete memory', 'Error');
+          this.cancelDelete();
+        },
       });
   }
 }
