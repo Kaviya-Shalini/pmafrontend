@@ -1,13 +1,12 @@
-// location.component.ts
 import { Component, OnInit, NgZone } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { interval, Subscription } from 'rxjs';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { SafeUrlPipe } from './safe-url.pipe';
 import { ToastrService } from 'ngx-toastr';
 
-// Define a single, consistent interface for location data
+// A single, consistent interface for all location data
 interface Location {
   latitude: number;
   longitude: number;
@@ -20,22 +19,20 @@ interface Location {
   selector: 'app-location',
   templateUrl: './location.html',
   styleUrls: ['./location.css'],
-  imports: [FormsModule, ReactiveFormsModule, CommonModule, SafeUrlPipe],
+  imports: [FormsModule, CommonModule, SafeUrlPipe],
   standalone: true,
 })
 export class LocationComponent implements OnInit {
   patientId = '';
 
-  // Current and permanent locations
   currentLocation: Location | null = null;
   permanentLocation: Location | null = null;
   currentAccuracy: number | null = null;
 
-  // UI state
   loading = false;
   mapSrc = '';
   showSaveConfirm = false;
-  editing = false;
+  editing = false; // Corrected property name
   editAddress = '';
   editLat: number | null = null;
   editLng: number | null = null;
@@ -44,7 +41,7 @@ export class LocationComponent implements OnInit {
 
   private watchId: number | null = null;
   private periodicCheckSub: Subscription | null = null;
-  private readonly awayThresholdKm = 0.2; // 200 meters
+  private readonly awayThresholdKm = 0.2;
 
   constructor(private http: HttpClient, private ngZone: NgZone, private toastr: ToastrService) {}
 
@@ -69,7 +66,7 @@ export class LocationComponent implements OnInit {
 
   startWatchingPosition(): void {
     if (!('geolocation' in navigator)) {
-      this.message = 'Geolocation is not supported by this browser.';
+      this.message = 'Geolocation is not supported.';
       return;
     }
     this.loading = true;
@@ -92,7 +89,7 @@ export class LocationComponent implements OnInit {
           this.message = `Unable to get location: ${err.message}`;
         });
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+      { enableHighAccuracy: true }
     );
   }
 
@@ -103,13 +100,14 @@ export class LocationComponent implements OnInit {
   }
 
   loadPermanentLocation(): void {
-    const url = `http://localhost:8080/api/patients/${this.patientId}/location`;
-    this.http.get<Location>(url).subscribe({
-      next: (loc) => {
-        if (loc) this.permanentLocation = loc;
-      },
-      error: () => console.error('Could not fetch permanent location from server.'),
-    });
+    this.http
+      .get<Location>(`http://localhost:8080/api/patients/${this.patientId}/location`)
+      .subscribe({
+        next: (loc) => {
+          if (loc) this.permanentLocation = loc;
+        },
+        error: () => this.toastr.info('No permanent location set for this user yet.'),
+      });
   }
 
   askToSavePermanent(): void {
@@ -118,6 +116,7 @@ export class LocationComponent implements OnInit {
       return;
     }
     this.showSaveConfirm = true;
+    this.editing = false; // Ensure it's not in edit mode
     this.editLat = this.currentLocation.latitude;
     this.editLng = this.currentLocation.longitude;
     this.editAddress = '';
@@ -129,7 +128,7 @@ export class LocationComponent implements OnInit {
       latitude: this.editLat,
       longitude: this.editLng,
       address: this.editAddress,
-      isPermanent: true,
+      isPermanent: true, // **THE FIX**
     };
     this.http
       .post<Location>(`http://localhost:8080/api/patients/${this.patientId}/location`, payload)
@@ -146,6 +145,7 @@ export class LocationComponent implements OnInit {
   startEditPermanent(): void {
     if (!this.permanentLocation) return;
     this.editing = true;
+    this.showSaveConfirm = false; // Hide the save new dialog
     this.editLat = this.permanentLocation.latitude;
     this.editLng = this.permanentLocation.longitude;
     this.editAddress = this.permanentLocation.address || '';
@@ -153,22 +153,22 @@ export class LocationComponent implements OnInit {
 
   savePermanentEdit(): void {
     if (this.editLat === null || this.editLng === null) return;
-    const updatedLocation: Location = {
+    const payload: Location = {
       ...this.permanentLocation,
       latitude: this.editLat,
       longitude: this.editLng,
       address: this.editAddress,
-      isPermanent: true,
+      isPermanent: true, // **THE FIX**
     };
     this.http
-      .put<Location>(
-        `http://localhost:8080/api/patients/${this.patientId}/location`,
-        updatedLocation
-      )
-      .subscribe((saved) => {
-        this.editing = false;
-        this.permanentLocation = saved;
-        this.toastr.success('Permanent location updated!');
+      .put<Location>(`http://localhost:8080/api/patients/${this.patientId}/location`, payload)
+      .subscribe({
+        next: (saved) => {
+          this.permanentLocation = saved;
+          this.editing = false;
+          this.toastr.success('Permanent location updated!');
+        },
+        error: () => this.toastr.error('Failed to update location.'),
       });
   }
 
@@ -193,7 +193,7 @@ export class LocationComponent implements OnInit {
 
   computeDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const toRad = (v: number) => (v * Math.PI) / 180;
-    const R = 6371; // Earth radius in km
+    const R = 6371; // Earth's radius in kilometers
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
     const a =
