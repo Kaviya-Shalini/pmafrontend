@@ -5,6 +5,7 @@ import { timer } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { ToastrService } from 'ngx-toastr';
 
+// Interfaces remain the same
 interface FamilyMember {
   id: string;
   username: string;
@@ -12,7 +13,7 @@ interface FamilyMember {
 }
 
 interface ChatMessage {
-  sender: string;
+  fromUser: string; // Match backend model
   message: string;
   createdAt: Date;
 }
@@ -40,16 +41,14 @@ export class ConnectFamilyComponent implements OnInit {
   chats: { [key: string]: ChatMessage[] } = {};
   selectedMember: FamilyMember | null = null;
   newMessage = '';
-  showChatModal = false;
-  toastVisible = false;
-  toastMessage = '';
-  selectedMemory: any = null;
   showConfirmDialog: boolean = false;
   confirmedMemoryId: string = '';
-
   page: number = 0;
   size: number = 8;
   totalPages: number = 1;
+
+  // Added missing property
+  selectedMemory: any = null;
 
   constructor(private fb: FormBuilder, private http: HttpClient, private toastr: ToastrService) {
     this.form = this.fb.group({ username: [''] });
@@ -60,65 +59,61 @@ export class ConnectFamilyComponent implements OnInit {
     this.pollMessages();
   }
 
-  // in src/app/connectfamily/connectfamily.ts
-
   fetchCurrentUser() {
     const userId = localStorage.getItem('pma-userId');
-    if (!userId) {
-      console.error('User ID not found, cannot fetch user data.');
-      return;
-    }
+    if (!userId) return;
     this.http.get<User>(`http://localhost:8080/api/user/${userId}`).subscribe((res) => {
       this.user = res;
       this.fetchFamilyMembers();
-      this.loadMemories(); // This will now work correctly
-    });
-  }
-
-  // in src/app/connectfamily/connectfamily.ts
-
-  loadMemories() {
-    if (!this.user) return;
-    this.http
-      .get<any>(
-        `http://localhost:8080/api/memories/user/${this.user.userId}?page=${this.page}&size=${this.size}&search=${this.searchTerm}`
-      )
-      .subscribe((res: any) => {
-        this.memories = res.content || []; // <-- Correctly assign the content array
-        this.totalPages = res.totalPages || 1;
-      });
-  }
-
-  filteredMemories() {
-    if (!this.searchTerm) return this.memories;
-    return this.memories.filter(
-      (m) =>
-        m.title.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        m.description.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        m.category.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        (m.customCategory && m.customCategory.toLowerCase().includes(this.searchTerm.toLowerCase()))
-    );
-  }
-
-  toggleChatPanel() {
-    this.showChatPanel = !this.showChatPanel;
-  }
-
-  addFamilyMember() {
-    const username = this.form.value.username;
-    if (!username) return;
-    this.http.post('http://localhost:8080/api/family/connect', { username }).subscribe(() => {
-      this.toast('Family member connected!');
-      this.form.reset();
-      this.fetchFamilyMembers();
-      this.loadMemories(); // Load memories after connection
+      if (res.isAlzheimer) {
+        this.loadMemories(res.userId);
+      }
     });
   }
 
   fetchFamilyMembers() {
     this.http.get<FamilyMember[]>('http://localhost:8080/api/family/list').subscribe((res) => {
       this.familyMembers = res.map((member) => ({ ...member, unread: 0 }));
-      res.forEach((m) => (this.chats[m.username] = []));
+      res.forEach((m) => {
+        if (!this.chats[m.username]) this.chats[m.username] = [];
+      });
+    });
+  }
+
+  selectMember(member: FamilyMember) {
+    this.selectedMember = member;
+    if (this.user && !this.user.isAlzheimer) {
+      this.loadMemories(member.id);
+    }
+    this.showChatPanel = true;
+    this.openChat(member);
+  }
+
+  loadMemories(userId: string) {
+    this.http
+      .get<any>(
+        `http://localhost:8080/api/memories/user/${userId}?page=${this.page}&size=${this.size}&search=${this.searchTerm}`
+      )
+      .subscribe((res: any) => {
+        this.memories = res.content || [];
+        this.totalPages = res.totalPages || 1;
+      });
+  }
+
+  filteredMemories() {
+    return this.memories;
+  }
+
+  addFamilyMember() {
+    const username = this.form.value.username;
+    if (!username || !this.user?.isAlzheimer) {
+      this.toastr.warning('Only patients can add family members.');
+      return;
+    }
+    this.http.post('http://localhost:8080/api/family/connect', { username }).subscribe(() => {
+      this.toastr.success('Family member connected!');
+      this.form.reset();
+      this.fetchFamilyMembers();
     });
   }
 
@@ -127,19 +122,16 @@ export class ConnectFamilyComponent implements OnInit {
     this.http
       .post('http://localhost:8080/api/family/disconnect', { username: member.username })
       .subscribe(() => {
-        this.toast(`${member.username} disconnected.`);
+        this.toastr.info(`${member.username} disconnected.`);
         this.fetchFamilyMembers();
         delete this.chats[member.username];
-        if (this.selectedMember?.username === member.username) this.closeChat();
+        if (this.selectedMember?.id === member.id) this.selectedMember = null;
       });
   }
 
   openChat(member: FamilyMember) {
     this.selectedMember = member;
-    this.showChatModal = true;
     member.unread = 0;
-
-    // Fetch the full conversation history when a chat is opened
     this.http
       .get<ChatMessage[]>(`http://localhost:8080/api/chat/conversation?other=${member.username}`)
       .subscribe((res) => {
@@ -152,40 +144,34 @@ export class ConnectFamilyComponent implements OnInit {
     const message = this.newMessage.trim();
     const to = this.selectedMember.username;
 
-    this.http.post('http://localhost:8080/api/chat/send', { to, message }).subscribe(() => {
-      // Add the message to the chat window immediately
-      if (!this.chats[to]) {
-        this.chats[to] = [];
-      }
-      this.chats[to].push({
-        sender: this.user?.username!,
-        message,
-        createdAt: new Date(),
-      });
+    this.http.post('http://localhost:8080/api/chat/send', { to, message }).subscribe((res: any) => {
+      if (!this.chats[to]) this.chats[to] = [];
+      this.chats[to].push(res.data);
       this.newMessage = '';
     });
   }
 
   pollMessages() {
     timer(0, 5000).subscribe(() => {
-      this.http.get<ChatMessage[]>('http://localhost:8080/api/chat/receive').subscribe((res) => {
+      if (!this.user) return;
+      this.http.get<ChatMessage[]>(`http://localhost:8080/api/chat/receive`).subscribe((res) => {
         res.forEach((msg) => {
-          if (!this.chats[msg.sender]) this.chats[msg.sender] = [];
-          // Use a more reliable check to see if the message already exists
-          const exists = this.chats[msg.sender].some(
-            (m) =>
-              m.message === msg.message &&
-              new Date(m.createdAt).getTime() === new Date(msg.createdAt).getTime()
+          const sender = msg.fromUser;
+          if (!this.chats[sender]) this.chats[sender] = [];
+
+          const exists = this.chats[sender].some(
+            (m) => new Date(m.createdAt).getTime() === new Date(msg.createdAt).getTime()
           );
+
           if (!exists) {
-            this.chats[msg.sender].push(msg);
-            const member = this.familyMembers.find((m) => m.username === msg.sender);
+            this.chats[sender].push(msg);
+            const member = this.familyMembers.find((m) => m.username === sender);
             if (
               member &&
               (!this.selectedMember || this.selectedMember.username !== member.username)
             ) {
               member.unread = (member.unread || 0) + 1;
-              this.toast(`New message from ${member.username}`);
+              this.toastr.info(`New message from ${member.username}`);
             }
           }
         });
@@ -193,41 +179,40 @@ export class ConnectFamilyComponent implements OnInit {
     });
   }
 
-  closeChat() {
-    this.showChatModal = false;
-    this.selectedMember = null;
+  isMyMessage(chat: ChatMessage): boolean {
+    return chat.fromUser === this.user?.username;
+  }
+
+  // Added missing methods
+  toggleChatPanel() {
+    this.showChatPanel = !this.showChatPanel;
   }
 
   deleteMessage(member: FamilyMember, message: ChatMessage) {
-    if (!confirm('Delete this message?')) return;
+    if (!confirm('Are you sure you want to delete this message?')) return;
     this.http
-      .post('http://localhost:8080/api/chat/delete', { username: member.username, message })
+      .post('http://localhost:8080/api/chat/delete', {
+        username: member.username,
+        message: message.message,
+        createdAt: message.createdAt,
+      })
       .subscribe(() => {
         this.chats[member.username] = this.chats[member.username].filter((m) => m !== message);
-        this.toast('Message deleted.');
+        this.toastr.info('Message deleted.');
       });
   }
 
   clearAllChats(member: FamilyMember) {
-    if (!confirm(`Clear all chats with ${member.username}?`)) return;
+    if (!confirm(`Are you sure you want to clear all chats with ${member.username}?`)) return;
     this.http
       .post('http://localhost:8080/api/chat/clear', { username: member.username })
       .subscribe(() => {
         this.chats[member.username] = [];
-        this.toast('All chats cleared.');
+        this.toastr.info('Chat history cleared.');
       });
   }
 
-  // ------------------- Memory Functions -------------------
-  openMemory(memory: any) {
-    this.selectedMemory = memory;
-  }
-
-  closeModal() {
-    this.selectedMemory = null;
-  }
-
-  downloadFile(memoryId: string) {
+  downloadFile(memoryId: string): void {
     this.http
       .get(`http://localhost:8080/api/memories/${memoryId}/download?type=file`, {
         responseType: 'blob',
@@ -236,13 +221,13 @@ export class ConnectFamilyComponent implements OnInit {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'memory-file';
+        a.download = 'memory-file'; // You might want to get the real filename
         a.click();
         window.URL.revokeObjectURL(url);
       });
   }
 
-  downloadVoice(memoryId: string) {
+  downloadVoice(memoryId: string): void {
     this.http
       .get(`http://localhost:8080/api/memories/${memoryId}/download?type=voice`, {
         responseType: 'blob',
@@ -250,10 +235,27 @@ export class ConnectFamilyComponent implements OnInit {
       .subscribe((blob) => {
         const url = window.URL.createObjectURL(blob);
         const audio = new Audio(url);
-        audio.play().catch((err) => console.error('Audio play error:', err));
+        audio.play();
       });
   }
 
+  nextPage() {
+    if (this.page + 1 < this.totalPages) {
+      this.page++;
+      const userIdToLoad =
+        (this.user?.isAlzheimer ? this.user.userId : this.selectedMember?.id) || '';
+      if (userIdToLoad) this.loadMemories(userIdToLoad);
+    }
+  }
+
+  prevPage() {
+    if (this.page > 0) {
+      this.page--;
+      const userIdToLoad =
+        (this.user?.isAlzheimer ? this.user.userId : this.selectedMember?.id) || '';
+      if (userIdToLoad) this.loadMemories(userIdToLoad);
+    }
+  }
   confirmDelete(memoryId: string) {
     this.confirmedMemoryId = memoryId;
     this.showConfirmDialog = true;
@@ -286,26 +288,5 @@ export class ConnectFamilyComponent implements OnInit {
           this.cancelDelete();
         },
       });
-  }
-
-  toast(msg: string) {
-    this.toastMessage = msg;
-    this.toastVisible = true;
-    setTimeout(() => (this.toastVisible = false), 3000);
-  }
-  // in src/app/connectfamily/connectfamily.ts
-
-  nextPage() {
-    if (this.page + 1 < this.totalPages) {
-      this.page++;
-      this.loadMemories();
-    }
-  }
-
-  prevPage() {
-    if (this.page > 0) {
-      this.page--;
-      this.loadMemories();
-    }
   }
 }

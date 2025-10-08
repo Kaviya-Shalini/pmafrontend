@@ -47,14 +47,14 @@
       </div>
 
       <div *ngIf="selectedMember" class="flex flex-col gap-2 max-h-64 overflow-y-auto mb-4">
-        <div *ngFor="let chat of chats[selectedMember.username]" class="p-3 rounded-xl flex justify-between"
-             [ngClass]="{'bg-emerald-400/20 self-end': chat.sender === user?.username, 'bg-white/10 self-start': chat.sender !== user?.username}">
-          <div>
-            <p class="text-sm"><span class="font-semibold">{{ chat.sender }}:</span> {{ chat.message }}</p>
-            <p class="text-[10px] text-slate-300 mt-1">{{ chat.createdAt | date:'shortTime' }}</p>
-          </div>
-          <button (click)="deleteMessage(selectedMember, chat)" class="text-red-500 text-xs ml-2 hover:scale-110 transition">🗑</button>
-        </div>
+       <div *ngFor="let chat of chats[selectedMember.username]" class="p-3 rounded-xl flex justify-between"
+     [ngClass]="{'bg-emerald-400/20 self-end': chat.fromUser === user?.username, 'bg-white/10 self-start': chat.fromUser !== user?.username}">
+  <div>
+    <p class="text-sm"><span class="font-semibold">{{ chat.fromUser }}:</span> {{ chat.message }}</p>
+    <p class="text-[10px] text-slate-300 mt-1">{{ chat.createdAt | date:'shortTime' }}</p>
+  </div>
+  <button (click)="deleteMessage(selectedMember, chat)" class="text-red-500 text-xs ml-2 hover:scale-110 transition">🗑</button>
+</div>
 
         <button class="mt-2 px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:scale-105 transition"
                 (click)="clearAllChats(selectedMember)">Clear All Chats</button>
