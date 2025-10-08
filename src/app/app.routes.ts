@@ -36,13 +36,10 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./connectfamily/connectfamily').then((m) => m.ConnectFamilyComponent),
       },
-      // {
-      //   path: 'location',
-      //   loadComponent: () =>
-      //     import('./location/location.component').then(
-      //       (m) => m.LocationComponent
-      //     ),
-      // },
+      {
+        path: 'location',
+        loadComponent: () => import('./location/location').then((m) => m.LocationComponent),
+      },
       { path: 'add-memory', component: AddMemoryComponent },
       { path: 'memories', component: MemoriesComponent },
     ],

@@ -5,7 +5,7 @@ import { timer } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { ToastrService } from 'ngx-toastr';
 
-// Interfaces remain the same
+// Interfaces for our data structures
 interface FamilyMember {
   id: string;
   username: string;
@@ -13,7 +13,7 @@ interface FamilyMember {
 }
 
 interface ChatMessage {
-  fromUser: string; // Match backend model
+  fromUser: string;
   message: string;
   createdAt: Date;
 }
@@ -32,8 +32,8 @@ interface User {
   standalone: true,
 })
 export class ConnectFamilyComponent implements OnInit {
+  // Component State
   showChatPanel = false;
-  searchTerm = '';
   memories: any[] = [];
   user: User | null = null;
   form: FormGroup;
@@ -41,14 +41,12 @@ export class ConnectFamilyComponent implements OnInit {
   chats: { [key: string]: ChatMessage[] } = {};
   selectedMember: FamilyMember | null = null;
   newMessage = '';
-  showConfirmDialog: boolean = false;
-  confirmedMemoryId: string = '';
-  page: number = 0;
-  size: number = 8;
-  totalPages: number = 1;
-
-  // Added missing property
-  selectedMemory: any = null;
+  showConfirmDialog = false;
+  confirmedMemoryId = '';
+  page = 0;
+  size = 8;
+  totalPages = 1;
+  selectedMemory: any = null; // For viewing a memory
 
   constructor(private fb: FormBuilder, private http: HttpClient, private toastr: ToastrService) {
     this.form = this.fb.group({ username: [''] });
@@ -62,9 +60,11 @@ export class ConnectFamilyComponent implements OnInit {
   fetchCurrentUser() {
     const userId = localStorage.getItem('pma-userId');
     if (!userId) return;
+
     this.http.get<User>(`http://localhost:8080/api/user/${userId}`).subscribe((res) => {
       this.user = res;
       this.fetchFamilyMembers();
+      // If the current user is the patient, load their memories by default
       if (res.isAlzheimer) {
         this.loadMemories(res.userId);
       }
@@ -80,19 +80,20 @@ export class ConnectFamilyComponent implements OnInit {
     });
   }
 
-  selectMember(member: FamilyMember) {
+  selectMemberAndOpenChat(member: FamilyMember) {
     this.selectedMember = member;
+    // **MEMORY VISIBILITY FIX**: If the logged-in user is NOT the patient,
+    // load the memories of the PATIENT they just clicked on.
     if (this.user && !this.user.isAlzheimer) {
-      this.loadMemories(member.id);
+      this.loadMemories(member.id); // 'member.id' is the patient's userId
     }
-    this.showChatPanel = true;
     this.openChat(member);
   }
 
   loadMemories(userId: string) {
     this.http
       .get<any>(
-        `http://localhost:8080/api/memories/user/${userId}?page=${this.page}&size=${this.size}&search=${this.searchTerm}`
+        `http://localhost:8080/api/memories/user/${userId}?page=${this.page}&size=${this.size}`
       )
       .subscribe((res: any) => {
         this.memories = res.content || [];
@@ -100,13 +101,13 @@ export class ConnectFamilyComponent implements OnInit {
       });
   }
 
-  filteredMemories() {
-    return this.memories;
-  }
-
   addFamilyMember() {
     const username = this.form.value.username;
-    if (!username || !this.user?.isAlzheimer) {
+    if (!username) {
+      this.toastr.warning('Please enter a username.');
+      return;
+    }
+    if (!this.user?.isAlzheimer) {
       this.toastr.warning('Only patients can add family members.');
       return;
     }
@@ -118,20 +119,27 @@ export class ConnectFamilyComponent implements OnInit {
   }
 
   disconnectFamilyMember(member: FamilyMember) {
-    if (!confirm(`Are you sure you want to disconnect ${member.username}?`)) return;
-    this.http
-      .post('http://localhost:8080/api/family/disconnect', { username: member.username })
-      .subscribe(() => {
-        this.toastr.info(`${member.username} disconnected.`);
-        this.fetchFamilyMembers();
-        delete this.chats[member.username];
-        if (this.selectedMember?.id === member.id) this.selectedMember = null;
-      });
+    if (confirm(`Are you sure you want to disconnect ${member.username}?`)) {
+      this.http
+        .post('http://localhost:8080/api/family/disconnect', { username: member.username })
+        .subscribe(() => {
+          this.toastr.info(`${member.username} disconnected.`);
+          this.fetchFamilyMembers();
+          delete this.chats[member.username];
+          if (this.selectedMember?.id === member.id) this.selectedMember = null;
+        });
+    }
+  }
+
+  // --- Chat Methods ---
+  toggleChatPanel() {
+    this.showChatPanel = !this.showChatPanel;
   }
 
   openChat(member: FamilyMember) {
     this.selectedMember = member;
     member.unread = 0;
+    this.showChatPanel = true;
     this.http
       .get<ChatMessage[]>(`http://localhost:8080/api/chat/conversation?other=${member.username}`)
       .subscribe((res) => {
@@ -141,14 +149,14 @@ export class ConnectFamilyComponent implements OnInit {
 
   sendMessage() {
     if (!this.selectedMember || !this.newMessage.trim() || !this.user) return;
-    const message = this.newMessage.trim();
     const to = this.selectedMember.username;
-
-    this.http.post('http://localhost:8080/api/chat/send', { to, message }).subscribe((res: any) => {
-      if (!this.chats[to]) this.chats[to] = [];
-      this.chats[to].push(res.data);
-      this.newMessage = '';
-    });
+    this.http
+      .post('http://localhost:8080/api/chat/send', { to, message: this.newMessage.trim() })
+      .subscribe((res: any) => {
+        if (!this.chats[to]) this.chats[to] = [];
+        this.chats[to].push(res.data);
+        this.newMessage = '';
+      });
   }
 
   pollMessages() {
@@ -157,13 +165,11 @@ export class ConnectFamilyComponent implements OnInit {
       this.http.get<ChatMessage[]>(`http://localhost:8080/api/chat/receive`).subscribe((res) => {
         res.forEach((msg) => {
           const sender = msg.fromUser;
-          if (!this.chats[sender]) this.chats[sender] = [];
-
-          const exists = this.chats[sender].some(
+          const exists = this.chats[sender]?.some(
             (m) => new Date(m.createdAt).getTime() === new Date(msg.createdAt).getTime()
           );
-
           if (!exists) {
+            if (!this.chats[sender]) this.chats[sender] = [];
             this.chats[sender].push(msg);
             const member = this.familyMembers.find((m) => m.username === sender);
             if (
@@ -179,51 +185,24 @@ export class ConnectFamilyComponent implements OnInit {
     });
   }
 
+  // --- UI Helper Methods ---
   isMyMessage(chat: ChatMessage): boolean {
     return chat.fromUser === this.user?.username;
   }
 
-  // Added missing methods
-  toggleChatPanel() {
-    this.showChatPanel = !this.showChatPanel;
-  }
-
-  deleteMessage(member: FamilyMember, message: ChatMessage) {
-    if (!confirm('Are you sure you want to delete this message?')) return;
-    this.http
-      .post('http://localhost:8080/api/chat/delete', {
-        username: member.username,
-        message: message.message,
-        createdAt: message.createdAt,
-      })
-      .subscribe(() => {
-        this.chats[member.username] = this.chats[member.username].filter((m) => m !== message);
-        this.toastr.info('Message deleted.');
-      });
-  }
-
-  clearAllChats(member: FamilyMember) {
-    if (!confirm(`Are you sure you want to clear all chats with ${member.username}?`)) return;
-    this.http
-      .post('http://localhost:8080/api/chat/clear', { username: member.username })
-      .subscribe(() => {
-        this.chats[member.username] = [];
-        this.toastr.info('Chat history cleared.');
-      });
-  }
-
+  // --- Memory Interaction Methods ---
   downloadFile(memoryId: string): void {
     this.http
       .get(`http://localhost:8080/api/memories/${memoryId}/download?type=file`, {
         responseType: 'blob',
       })
       .subscribe((blob) => {
-        const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = 'memory-file'; // You might want to get the real filename
+        const objectUrl = URL.createObjectURL(blob);
+        a.href = objectUrl;
+        a.download = 'memory-file'; // You can fetch the real filename if available
         a.click();
-        window.URL.revokeObjectURL(url);
+        URL.revokeObjectURL(objectUrl);
       });
   }
 
@@ -239,27 +218,9 @@ export class ConnectFamilyComponent implements OnInit {
       });
   }
 
-  nextPage() {
-    if (this.page + 1 < this.totalPages) {
-      this.page++;
-      const userIdToLoad =
-        (this.user?.isAlzheimer ? this.user.userId : this.selectedMember?.id) || '';
-      if (userIdToLoad) this.loadMemories(userIdToLoad);
-    }
-  }
-
-  prevPage() {
-    if (this.page > 0) {
-      this.page--;
-      const userIdToLoad =
-        (this.user?.isAlzheimer ? this.user.userId : this.selectedMember?.id) || '';
-      if (userIdToLoad) this.loadMemories(userIdToLoad);
-    }
-  }
   confirmDelete(memoryId: string) {
     this.confirmedMemoryId = memoryId;
     this.showConfirmDialog = true;
-    this.selectedMemory = null;
   }
 
   cancelDelete() {
@@ -276,7 +237,6 @@ export class ConnectFamilyComponent implements OnInit {
         next: (res) => {
           if (res.success) {
             this.memories = this.memories.filter((m) => m.id !== memoryId);
-            if (this.selectedMemory?.id === memoryId) this.selectedMemory = null;
             this.toastr.success(res.message, 'Deleted');
           } else {
             this.toastr.error(res.message, 'Error');
@@ -288,5 +248,22 @@ export class ConnectFamilyComponent implements OnInit {
           this.cancelDelete();
         },
       });
+  }
+
+  // --- Pagination ---
+  nextPage() {
+    if (this.page + 1 < this.totalPages) {
+      this.page++;
+      const userId = this.user?.isAlzheimer ? this.user.userId : this.selectedMember?.id;
+      if (userId) this.loadMemories(userId);
+    }
+  }
+
+  prevPage() {
+    if (this.page > 0) {
+      this.page--;
+      const userId = this.user?.isAlzheimer ? this.user.userId : this.selectedMember?.id;
+      if (userId) this.loadMemories(userId);
+    }
   }
 }

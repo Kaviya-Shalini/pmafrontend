@@ -1,115 +1,101 @@
 <div class="min-h-screen w-full flex flex-col bg-gradient-to-tr from-indigo-950 via-purple-950 to-pink-950 text-white relative overflow-hidden p-8 rounded-3xl">
 
-  <!-- Header -->
   <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 z-10">
     <div>
       <h1 class="text-4xl font-extrabold tracking-wide drop-shadow-lg">
         👪 Connect Family, <span class="text-yellow-300">{{ user?.username }}</span>
       </h1>
-      <p class="text-sm opacity-70 mt-2">Connect family members, chat & manage memories 💜</p>
+      <p class="text-sm opacity-70 mt-2">Connect with family, chat, and manage memories 💜</p>
     </div>
     <span *ngIf="user?.isAlzheimer" class="px-4 py-1 bg-red-500/20 text-red-300 text-sm rounded-full mt-4 md:mt-0 shadow-md">
       🧠 Alzheimer Patient
     </span>
   </header>
 
-  <!-- Connect Family -->
-  <section class="bg-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-md border border-white/10 hover:scale-105 transition-all duration-300 mb-6 z-10">
-    <h2 class="text-xl font-bold mb-4 text-yellow-300">Connect a Family Member</h2>
-    <form class="flex gap-4 flex-wrap md:flex-nowrap mb-4" [formGroup]="form" (ngSubmit)="addFamilyMember()">
-      <input formControlName="username" type="text" placeholder="Enter username"
-             class="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 placeholder:text-slate-300/60 text-white" />
-      <button type="submit" class="px-5 py-3 rounded-xl bg-emerald-400 text-slate-900 font-semibold hover:scale-105 transition">Connect</button>
-    </form>
+  <section class="bg-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-md border border-white/10 mb-6 z-10">
+    <div *ngIf="user?.isAlzheimer">
+      <h2 class="text-xl font-bold mb-4 text-yellow-300">Connect a Family Member</h2>
+      <form class="flex gap-4 flex-wrap md:flex-nowrap mb-4" [formGroup]="form" (ngSubmit)="addFamilyMember()">
+        <input formControlName="username" type="text" placeholder="Enter family member's username"
+               class="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 placeholder:text-slate-300/60 text-white" />
+        <button type="submit" class="px-5 py-3 rounded-xl bg-emerald-400 text-slate-900 font-semibold hover:scale-105 transition">Connect</button>
+      </form>
+    </div>
 
-    <button (click)="toggleChatPanel()" class="mt-2 px-5 py-3 rounded-xl bg-amber-400 text-slate-900 font-semibold hover:scale-105 transition">
-      Open Chat
-    </button>
+    <div *ngIf="familyMembers.length > 0" class="mt-4 pt-4 border-t border-white/10">
+        <h3 class="text-lg font-semibold text-green-300 mb-2">Your Connections</h3>
+        <div class="flex flex-wrap gap-4">
+            <div *ngFor="let member of familyMembers" 
+                 (click)="selectMemberAndOpenChat(member)"
+                 class="px-4 py-2 rounded-xl cursor-pointer flex items-center gap-2 bg-white/5 hover:bg-amber-400 hover:text-slate-900 transition">
+                {{ member.username }}
+                <span *ngIf="member.unread" class="bg-red-500 px-2 py-0.5 rounded-full text-xs font-bold text-white">{{ member.unread }}</span>
+            </div>
+        </div>
+        <div *ngIf="!user?.isAlzheimer" class="mt-2 text-sm text-gray-400">
+            Click on a patient's name to view their memories and chat.
+        </div>
+    </div>
+    <p *ngIf="familyMembers.length === 0 && user?.isAlzheimer" class="text-sm text-gray-400">You haven't connected with any family members yet.</p>
+    <p *ngIf="familyMembers.length === 0 && !user?.isAlzheimer" class="text-sm text-gray-400">No patients have connected with you yet.</p>
   </section>
 
-  <!-- Chat Panel -->
   <div *ngIf="showChatPanel" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
     <div class="bg-white/10 w-full max-w-3xl rounded-3xl p-6 shadow-2xl backdrop-blur-md border border-white/10 flex flex-col gap-4 relative">
-
       <button (click)="toggleChatPanel()" class="absolute top-4 right-4 px-3 py-1 bg-red-500 text-white rounded-full hover:scale-105 transition">Close</button>
-
-      <div class="flex gap-2 overflow-x-auto mb-4">
-        <div *ngFor="let member of familyMembers" class="relative">
-          <div (click)="openChat(member)"
-               [ngClass]="{'bg-amber-400 text-slate-900': selectedMember?.username === member.username, 'bg-white/5 text-white': selectedMember?.username !== member.username}"
-               class="px-4 py-2 rounded-xl cursor-pointer flex items-center gap-2">
-            {{ member.username }}
-            <span *ngIf="member.unread && member.unread > 0" class="bg-red-500 px-2 py-0.5 rounded-full text-xs font-bold text-white">{{ member.unread }}</span>
+      <h3 class="text-xl font-bold text-yellow-300">Chat with {{ selectedMember?.username }}</h3>
+      
+      <div *ngIf="selectedMember" class="flex flex-col gap-2 max-h-64 overflow-y-auto mb-4 p-2">
+        <div *ngFor="let chat of chats[selectedMember.username]" class="p-3 rounded-xl flex"
+             [ngClass]="{'bg-emerald-400/20 self-end': isMyMessage(chat), 'bg-white/10 self-start': !isMyMessage(chat)}">
+          <div>
+            <p class="text-sm"><span class="font-semibold">{{ chat.fromUser }}:</span> {{ chat.message }}</p>
+            <p class="text-[10px] text-slate-300 mt-1">{{ chat.createdAt | date:'shortTime' }}</p>
           </div>
-          <button (click)="disconnectFamilyMember(member)"
-                  class="absolute top-0 right-0 bg-red-500 text-white text-xs px-1 rounded-full hover:bg-red-600 transition">✖</button>
         </div>
       </div>
-
-      <div *ngIf="selectedMember" class="flex flex-col gap-2 max-h-64 overflow-y-auto mb-4">
-       <div *ngFor="let chat of chats[selectedMember.username]" class="p-3 rounded-xl flex justify-between"
-     [ngClass]="{'bg-emerald-400/20 self-end': chat.fromUser === user?.username, 'bg-white/10 self-start': chat.fromUser !== user?.username}">
-  <div>
-    <p class="text-sm"><span class="font-semibold">{{ chat.fromUser }}:</span> {{ chat.message }}</p>
-    <p class="text-[10px] text-slate-300 mt-1">{{ chat.createdAt | date:'shortTime' }}</p>
-  </div>
-  <button (click)="deleteMessage(selectedMember, chat)" class="text-red-500 text-xs ml-2 hover:scale-110 transition">🗑</button>
-</div>
-
-        <button class="mt-2 px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:scale-105 transition"
-                (click)="clearAllChats(selectedMember)">Clear All Chats</button>
-      </div>
-
+      
       <div class="flex gap-3">
-        <input [(ngModel)]="newMessage" type="text" placeholder="Type a message..."
+        <input [(ngModel)]="newMessage" (keyup.enter)="sendMessage()" type="text" placeholder="Type a message..."
                class="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 placeholder:text-slate-300/60 text-white"/>
         <button (click)="sendMessage()" class="px-5 py-3 rounded-xl bg-amber-400 text-slate-900 font-semibold hover:scale-105 transition">Send</button>
       </div>
     </div>
   </div>
 
-  <!-- Memories -->
-  <section class="bg-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-md border border-white/10 hover:scale-105 transition-all duration-300 mb-8 z-10">
-    <h2 class="text-xl font-bold mb-4 text-yellow-300">Memories</h2>
-    <input type="text" placeholder="Search memories..." [(ngModel)]="searchTerm"
-           class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 placeholder:text-slate-300/60 text-white mb-4"/>
-
+  <section *ngIf="(user?.isAlzheimer) || (!user?.isAlzheimer && selectedMember)" class="bg-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-md border border-white/10 mb-8 z-10">
+    <h2 class="text-xl font-bold mb-4 text-yellow-300">
+        {{ user?.isAlzheimer ? 'Your Memories' : 'Memories of ' + selectedMember?.username }}
+    </h2>
     <div class="flex flex-col gap-4 max-h-96 overflow-y-auto">
-      <div *ngFor="let memory of filteredMemories()"
-           class="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition">
+      <div *ngFor="let memory of memories" class="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition">
         <h3 class="text-lg font-semibold text-yellow-300">{{ memory.title }}</h3>
         <p class="text-sm text-slate-200 mb-1">{{ memory.description }}</p>
         <p class="text-xs text-slate-400 mb-2">Category: {{ memory.customCategory || memory.category }}</p>
         <div class="flex gap-3 flex-wrap">
-          <button *ngIf="memory.filePath" (click)="downloadFile(memory.id)"
-                  class="px-3 py-1 bg-emerald-400 text-slate-900 rounded-lg text-sm hover:scale-105 transition">Download File</button>
-          <button *ngIf="memory.voicePath" (click)="downloadVoice(memory.id)"
-                  class="px-3 py-1 bg-indigo-400 text-white rounded-lg text-sm hover:scale-105 transition">Play Voice</button>
-          <button (click)="confirmDelete(memory.id)"
-                  class="px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:scale-105 transition">Delete</button>
+          <button *ngIf="memory.filePath" (click)="downloadFile(memory.id)" class="px-3 py-1 bg-emerald-400 text-slate-900 rounded-lg text-sm hover:scale-105 transition">Download File</button>
+          <button *ngIf="memory.voicePath" (click)="downloadVoice(memory.id)" class="px-3 py-1 bg-indigo-400 text-white rounded-lg text-sm hover:scale-105 transition">Play Voice</button>
+          <button *ngIf="user?.isAlzheimer" (click)="confirmDelete(memory.id)" class="px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:scale-105 transition">Delete</button>
         </div>
         <p class="text-[10px] text-slate-400 mt-2">Created At: {{ memory.createdAt | date:'short' }}</p>
       </div>
+      <p *ngIf="memories.length === 0" class="text-center text-gray-400 py-4">No memories found.</p>
     </div>
   </section>
 
-  <!-- Delete Confirmation Modal -->
   <div *ngIf="showConfirmDialog" class="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
     <div class="bg-gradient-to-br from-indigo-950 via-purple-900 to-pink-900 text-white p-6 rounded-2xl w-96 shadow-lg border border-white/10 text-center">
       <h2 class="text-xl font-semibold mb-5 text-pink-400">Are you sure you want to delete this memory?</h2>
       <div class="flex justify-center gap-4">
-        <button (click)="deleteMemory(confirmedMemoryId)"
-                class="px-5 py-2 rounded-xl bg-red-600 font-semibold hover:scale-105 transition-all duration-300">Yes, Delete</button>
-        <button (click)="cancelDelete()"
-                class="px-5 py-2 rounded-xl bg-gray-600 hover:bg-gray-700 font-semibold transition-all duration-300">Cancel</button>
+        <button (click)="deleteMemory(confirmedMemoryId)" class="px-5 py-2 rounded-xl bg-red-600 font-semibold hover:scale-105 transition-all duration-300">Yes, Delete</button>
+        <button (click)="cancelDelete()" class="px-5 py-2 rounded-xl bg-gray-600 hover:bg-gray-700 font-semibold transition-all duration-300">Cancel</button>
       </div>
     </div>
   </div>
-  <div class="flex justify-between mt-4">
-  <button (click)="prevPage()" [disabled]="page === 0" class="px-4 py-2 bg-gray-600 rounded">Previous</button>
-  <span>Page {{ page + 1 }} / {{ totalPages }}</span>
-  <button (click)="nextPage()" [disabled]="page + 1 >= totalPages" class="px-4 py-2 bg-gray-600 rounded">Next</button>
-</div>
 
-
+  <div class="flex justify-between mt-4" *ngIf="memories.length > 0">
+    <button (click)="prevPage()" [disabled]="page === 0" class="px-4 py-2 bg-gray-600 rounded">Previous</button>
+    <span>Page {{ page + 1 }} / {{ totalPages }}</span>
+    <button (click)="nextPage()" [disabled]="page + 1 >= totalPages" class="px-4 py-2 bg-gray-600 rounded">Next</button>
+  </div>
 </div>
