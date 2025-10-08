@@ -26,8 +26,6 @@ export class LocationComponent implements OnInit {
   currentLocation: Location | null = null;
   permanentLocation: Location | null = null;
   currentAccuracy: number | null = null;
-
-  // UI state
   loading = false;
   mapSrc = '';
   showSaveConfirm = false;
@@ -37,7 +35,6 @@ export class LocationComponent implements OnInit {
   editLng: number | null = null;
   isAway = false;
   message = '';
-
   private watchId: number | null = null;
   private periodicCheckSub: Subscription | null = null;
   private readonly awayThresholdKm = 0.2;
@@ -115,21 +112,14 @@ export class LocationComponent implements OnInit {
   startEditPermanent(): void {
     if (!this.permanentLocation) return;
     this.editing = true;
-    this.showSaveConfirm = false;
+    this.showSaveConfirm = true; // Show the same form for editing
     this.editLat = this.permanentLocation.latitude;
     this.editLng = this.permanentLocation.longitude;
     this.editAddress = this.permanentLocation.address || '';
   }
 
-  cancelEdit(): void {
-    this.editing = false;
-    this.showSaveConfirm = false;
-  }
-
   saveOrUpdatePermanent(): void {
     if (this.editLat === null || this.editLng === null) return;
-
-    // This is the single payload for both creating and editing
     const payload: Location = {
       latitude: this.editLat,
       longitude: this.editLng,
@@ -137,7 +127,6 @@ export class LocationComponent implements OnInit {
       isPermanent: true,
     };
 
-    // If we are editing, use PUT. Otherwise, use POST.
     const request = this.editing
       ? this.http.put<Location>(
           `http://localhost:8080/api/patients/${this.patientId}/location`,
@@ -159,11 +148,13 @@ export class LocationComponent implements OnInit {
     });
   }
 
+  cancelEdit(): void {
+    this.editing = false;
+    this.showSaveConfirm = false;
+  }
+
   checkAwayStatus(): void {
-    if (!this.permanentLocation || !this.currentLocation) {
-      this.isAway = false;
-      return;
-    }
+    if (!this.permanentLocation || !this.currentLocation) return;
     const dist = this.computeDistanceKm(
       this.currentLocation.latitude,
       this.currentLocation.longitude,
@@ -175,7 +166,7 @@ export class LocationComponent implements OnInit {
 
   computeDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const toRad = (v: number) => (v * Math.PI) / 180;
-    const R = 6371; // Earth's radius in kilometers
+    const R = 6371;
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
     const a =
@@ -187,13 +178,13 @@ export class LocationComponent implements OnInit {
 
   getDirections(): void {
     if (!this.permanentLocation || !this.currentLocation) return;
-    const url = `https://maps.google.com/?saddr=${this.currentLocation.latitude},${this.currentLocation.longitude}&daddr=${this.permanentLocation.latitude},${this.permanentLocation.longitude}&travelmode=walking`;
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${this.currentLocation.latitude},${this.currentLocation.longitude}&destination=${this.permanentLocation.latitude},${this.permanentLocation.longitude}&travelmode=walking`;
     window.open(url, '_blank');
   }
 
   sendDangerAlert(): void {
     this.http
-      .post(`http://localhost:8080/api/alerts/danger`, {
+      .post(`/api/alerts/danger`, {
         patientId: this.patientId,
         latitude: this.currentLocation?.latitude,
         longitude: this.currentLocation?.longitude,

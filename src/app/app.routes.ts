@@ -3,9 +3,9 @@ import { WelcomepmaComponent } from './welcomepage/welcomepage';
 import { AuthComponent } from './auth/auth';
 import { AddMemoryComponent } from './add-memory/add-memory';
 import { AppLayoutComponent } from './app-layout/app-layout';
-import { DashboardComponent } from './dashboard/dashboard';
 import { MyPeopleComponent } from './mypeople/mypeople';
 import { MemoriesComponent } from './memories/memories';
+
 export const routes: Routes = [
   // Public routes
   { path: '', component: WelcomepmaComponent },
@@ -30,7 +30,6 @@ export const routes: Routes = [
           import('./photocontact/photocontact').then((m) => m.PhotoContactsComponent),
       },
       { path: 'mypeople', component: MyPeopleComponent },
-
       {
         path: 'connect-family',
         loadComponent: () =>
@@ -40,13 +39,14 @@ export const routes: Routes = [
         path: 'location',
         loadComponent: () => import('./location/location').then((m) => m.LocationComponent),
       },
-      { path: 'add-memory', component: AddMemoryComponent },
-      { path: 'memories', component: MemoriesComponent },
+      // **THIS IS THE FIX**
       {
         path: 'emergencyhelp',
         loadComponent: () =>
           import('./emergencyhelp/emergencyhelp').then((m) => m.EmergencyHelpComponent),
       },
+      { path: 'add-memory', component: AddMemoryComponent },
+      { path: 'memories', component: MemoriesComponent },
     ],
   },
 
