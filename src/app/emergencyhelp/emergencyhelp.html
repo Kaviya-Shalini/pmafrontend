@@ -117,7 +117,7 @@
                     ✏️
                   </button>
                   <a [href]="'tel:' + c.phone" title="Call" class="w-8 h-8 rounded-full bg-emerald-500 text-white hover:scale-110 transition-all duration-300 flex items-center justify-center">📞</a>
-                  <button (click)="deleteContact(c.id)" title="Delete" class="w-8 h-8 rounded-full bg-rose-600 text-white hover:scale-110 transition-all duration-300 flex items-center justify-center">🗑️</button>
+                  <button (click)="c.id && deleteContact(c.id)" title="Delete" class="w-8 h-8 rounded-full bg-rose-600 text-white hover:scale-110 transition-all duration-300 flex items-center justify-center">🗑️</button>
                 </div>
               </div>
               <div class="mt-1 text-xs text-slate-400">{{ c.phone }}</div>

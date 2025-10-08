@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -7,15 +7,7 @@ import {
   Validators,
   FormsModule,
 } from '@angular/forms';
-
-interface EmergencyContact {
-  id: number;
-  name: string;
-  relationship: string;
-  phone: string;
-  photoUrl?: string;
-  createdAt: Date;
-}
+import { EmergencyContactService, EmergencyContact } from './emergency-contact.service';
 
 @Component({
   selector: 'app-emergencyhelp',
@@ -23,7 +15,7 @@ interface EmergencyContact {
   imports: [CommonModule, ReactiveFormsModule, FormsModule],
   templateUrl: './emergencyhelp.html',
 })
-export class EmergencyHelpComponent {
+export class EmergencyHelpComponent implements OnInit {
   form: FormGroup;
   contacts: EmergencyContact[] = [];
   previewUrl: string | ArrayBuffer | null = null;
@@ -33,7 +25,7 @@ export class EmergencyHelpComponent {
   toastMessage = '';
   modalImageUrl: string | null = null;
 
-  constructor(private fb: FormBuilder) {
+  constructor(private fb: FormBuilder, private service: EmergencyContactService) {
     this.form = this.fb.group({
       name: ['', Validators.required],
       relationship: ['', Validators.required],
@@ -42,9 +34,28 @@ export class EmergencyHelpComponent {
     });
   }
 
-  // === Add or Update Contact ===
+  ngOnInit() {
+    this.loadContacts();
+  }
+
+  loadContacts() {
+    this.service.getAll().subscribe({
+      next: (data) => (this.contacts = data || []),
+      error: () => this.showToast('Failed to load contacts'),
+    });
+  }
+
+  // Add or Update — send Partial payload to backend
   addOrUpdateContact() {
     if (this.form.invalid) return;
+
+    const payload: Partial<EmergencyContact> = {
+      name: this.form.value.name,
+      relationship: this.form.value.relationship,
+      phone: this.form.value.phone,
+      photoUrl: typeof this.previewUrl === 'string' ? this.previewUrl : undefined,
+      createdAt: new Date().toISOString(),
+    };
 
     if (this.editingId === null) {
       if (this.contacts.length >= 5) {
@@ -52,34 +63,35 @@ export class EmergencyHelpComponent {
         return;
       }
 
-      const newContact: EmergencyContact = {
-        id: Date.now(),
-        name: this.form.value.name,
-        relationship: this.form.value.relationship,
-        phone: this.form.value.phone,
-        photoUrl: this.previewUrl as string,
-        createdAt: new Date(),
-      };
-      this.contacts.push(newContact);
-      this.showToast('Contact added successfully!');
+      this.service.add(payload).subscribe({
+        next: (added) => {
+          // backend should return saved object with id; if not, assign temporary id
+          if (!added.id) {
+            added.id = Date.now();
+          }
+          this.contacts.unshift(added);
+          this.showToast('Contact added successfully!');
+          this.resetForm();
+        },
+        error: () => this.showToast('Error adding contact'),
+      });
     } else {
-      const index = this.contacts.findIndex((c) => c.id === this.editingId);
-      if (index > -1) {
-        this.contacts[index] = {
-          ...this.contacts[index],
-          ...this.form.value,
-          photoUrl: this.previewUrl as string,
-        };
-        this.showToast('Contact updated successfully!');
-      }
+      const id = this.editingId;
+      this.service.update(id, payload).subscribe({
+        next: (updated) => {
+          const index = this.contacts.findIndex((c) => c.id === id);
+          if (index > -1) this.contacts[index] = updated;
+          this.showToast('Contact updated successfully!');
+          this.resetForm();
+        },
+        error: () => this.showToast('Error updating contact'),
+      });
     }
-
-    this.resetForm();
   }
 
-  // === Edit Contact ===
   editContact(c: EmergencyContact) {
-    this.editingId = c.id;
+    // safe assignment (may be undefined)
+    this.editingId = c.id ?? null;
     this.form.patchValue({
       name: c.name,
       relationship: c.relationship,
@@ -88,13 +100,20 @@ export class EmergencyHelpComponent {
     this.previewUrl = c.photoUrl || null;
   }
 
-  // === Delete Contact ===
-  deleteContact(id: number) {
-    this.contacts = this.contacts.filter((c) => c.id !== id);
-    this.showToast('Contact deleted!');
+  deleteContact(id?: number) {
+    if (!id) {
+      this.showToast('Cannot delete: invalid id');
+      return;
+    }
+    this.service.delete(id).subscribe({
+      next: () => {
+        this.contacts = this.contacts.filter((c) => c.id !== id);
+        this.showToast('Contact deleted!');
+      },
+      error: () => this.showToast('Error deleting contact'),
+    });
   }
 
-  // === Search ===
   get filteredContacts() {
     if (!this.searchTerm.trim()) return this.contacts;
     const term = this.searchTerm.toLowerCase();
@@ -106,7 +125,6 @@ export class EmergencyHelpComponent {
     );
   }
 
-  // === Handle Photo Upload ===
   onFileChange(event: any) {
     const file = event.target.files[0];
     if (!file) return;
@@ -115,23 +133,19 @@ export class EmergencyHelpComponent {
     reader.readAsDataURL(file);
   }
 
-  // === Image Modal ===
-  openImage(url: string | undefined) {
+  openImage(url?: string) {
     if (url) this.modalImageUrl = url;
   }
-
   closeImage() {
     this.modalImageUrl = null;
   }
 
-  // === Reset Form ===
   resetForm() {
     this.form.reset();
     this.previewUrl = null;
     this.editingId = null;
   }
 
-  // === Toast ===
   showToast(msg: string) {
     this.toastMessage = msg;
     this.toastVisible = true;
