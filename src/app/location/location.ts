@@ -6,7 +6,6 @@ import { CommonModule } from '@angular/common';
 import { SafeUrlPipe } from './safe-url.pipe';
 import { ToastrService } from 'ngx-toastr';
 
-// A single, consistent interface for all location data
 interface Location {
   latitude: number;
   longitude: number;
@@ -24,15 +23,15 @@ interface Location {
 })
 export class LocationComponent implements OnInit {
   patientId = '';
-
   currentLocation: Location | null = null;
   permanentLocation: Location | null = null;
   currentAccuracy: number | null = null;
 
+  // UI state
   loading = false;
   mapSrc = '';
   showSaveConfirm = false;
-  editing = false; // Corrected property name
+  editing = false;
   editAddress = '';
   editLat: number | null = null;
   editLng: number | null = null;
@@ -49,14 +48,12 @@ export class LocationComponent implements OnInit {
     const userId = localStorage.getItem('pma-userId');
     if (userId) {
       this.patientId = userId;
+      this.loadPermanentLocation();
+      this.startWatchingPosition();
+      this.periodicCheckSub = interval(8000).subscribe(() => this.checkAwayStatus());
     } else {
       this.message = 'No user found. Please log in.';
-      return;
     }
-
-    this.loadPermanentLocation();
-    this.startWatchingPosition();
-    this.periodicCheckSub = interval(8000).subscribe(() => this.checkAwayStatus());
   }
 
   ngOnDestroy(): void {
@@ -65,30 +62,23 @@ export class LocationComponent implements OnInit {
   }
 
   startWatchingPosition(): void {
-    if (!('geolocation' in navigator)) {
-      this.message = 'Geolocation is not supported.';
-      return;
-    }
+    if (!('geolocation' in navigator)) return;
     this.loading = true;
     this.watchId = navigator.geolocation.watchPosition(
       (pos) => {
         this.ngZone.run(() => {
-          this.currentLocation = {
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-          };
+          this.currentLocation = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
           this.currentAccuracy = pos.coords.accuracy;
           this.updateMapIframe(this.currentLocation.latitude, this.currentLocation.longitude);
           this.loading = false;
           this.checkAwayStatus();
         });
       },
-      (err) => {
+      () =>
         this.ngZone.run(() => {
           this.loading = false;
-          this.message = `Unable to get location: ${err.message}`;
-        });
-      },
+          this.message = 'Unable to get location.';
+        }),
       { enableHighAccuracy: true }
     );
   }
@@ -106,7 +96,7 @@ export class LocationComponent implements OnInit {
         next: (loc) => {
           if (loc) this.permanentLocation = loc;
         },
-        error: () => this.toastr.info('No permanent location set for this user yet.'),
+        error: () => this.toastr.info('No permanent location set yet.'),
       });
   }
 
@@ -116,65 +106,57 @@ export class LocationComponent implements OnInit {
       return;
     }
     this.showSaveConfirm = true;
-    this.editing = false; // Ensure it's not in edit mode
+    this.editing = false;
     this.editLat = this.currentLocation.latitude;
     this.editLng = this.currentLocation.longitude;
     this.editAddress = '';
   }
 
-  savePermanent(): void {
-    if (this.editLat === null || this.editLng === null) return;
-    const payload: Location = {
-      latitude: this.editLat,
-      longitude: this.editLng,
-      address: this.editAddress,
-      isPermanent: true, // **THE FIX**
-    };
-    this.http
-      .post<Location>(`http://localhost:8080/api/patients/${this.patientId}/location`, payload)
-      .subscribe({
-        next: (saved) => {
-          this.permanentLocation = saved;
-          this.showSaveConfirm = false;
-          this.toastr.success('Permanent location saved!');
-        },
-        error: () => this.toastr.error('Failed to save permanent location.'),
-      });
-  }
-
   startEditPermanent(): void {
     if (!this.permanentLocation) return;
     this.editing = true;
-    this.showSaveConfirm = false; // Hide the save new dialog
+    this.showSaveConfirm = false;
     this.editLat = this.permanentLocation.latitude;
     this.editLng = this.permanentLocation.longitude;
     this.editAddress = this.permanentLocation.address || '';
   }
 
-  savePermanentEdit(): void {
-    if (this.editLat === null || this.editLng === null) return;
-    const payload: Location = {
-      ...this.permanentLocation,
-      latitude: this.editLat,
-      longitude: this.editLng,
-      address: this.editAddress,
-      isPermanent: true, // **THE FIX**
-    };
-    this.http
-      .put<Location>(`http://localhost:8080/api/patients/${this.patientId}/location`, payload)
-      .subscribe({
-        next: (saved) => {
-          this.permanentLocation = saved;
-          this.editing = false;
-          this.toastr.success('Permanent location updated!');
-        },
-        error: () => this.toastr.error('Failed to update location.'),
-      });
-  }
-
   cancelEdit(): void {
     this.editing = false;
     this.showSaveConfirm = false;
+  }
+
+  saveOrUpdatePermanent(): void {
+    if (this.editLat === null || this.editLng === null) return;
+
+    // This is the single payload for both creating and editing
+    const payload: Location = {
+      latitude: this.editLat,
+      longitude: this.editLng,
+      address: this.editAddress,
+      isPermanent: true,
+    };
+
+    // If we are editing, use PUT. Otherwise, use POST.
+    const request = this.editing
+      ? this.http.put<Location>(
+          `http://localhost:8080/api/patients/${this.patientId}/location`,
+          payload
+        )
+      : this.http.post<Location>(
+          `http://localhost:8080/api/patients/${this.patientId}/location`,
+          payload
+        );
+
+    request.subscribe({
+      next: (savedLocation) => {
+        this.permanentLocation = savedLocation;
+        this.editing = false;
+        this.showSaveConfirm = false;
+        this.toastr.success(`Permanent location ${this.editing ? 'updated' : 'saved'}!`);
+      },
+      error: () => this.toastr.error('Failed to save location.'),
+    });
   }
 
   checkAwayStatus(): void {
@@ -205,16 +187,17 @@ export class LocationComponent implements OnInit {
 
   getDirections(): void {
     if (!this.permanentLocation || !this.currentLocation) return;
-    const url = `https://www.google.com/maps/dir/?api=1&origin=${this.currentLocation.latitude},${this.currentLocation.longitude}&destination=${this.permanentLocation.latitude},${this.permanentLocation.longitude}&travelmode=walking`;
+    const url = `https://maps.google.com/?saddr=${this.currentLocation.latitude},${this.currentLocation.longitude}&daddr=${this.permanentLocation.latitude},${this.permanentLocation.longitude}&travelmode=walking`;
     window.open(url, '_blank');
   }
 
   sendDangerAlert(): void {
     this.http
-      .post(`/api/alerts/danger`, {
+      .post(`http://localhost:8080/api/alerts/danger`, {
         patientId: this.patientId,
         latitude: this.currentLocation?.latitude,
         longitude: this.currentLocation?.longitude,
+        timestamp: new Date().toISOString(),
         message: 'ALERT: Patient may be lost!',
       })
       .subscribe({

@@ -88,8 +88,9 @@
         <input type="text" [(ngModel)]="editAddress" placeholder="e.g., Home — 123, Anna St." class="w-full mb-3 px-3 py-2 rounded-lg bg-transparent border border-white/8 outline-none" />
         <div class="flex gap-2 justify-end">
           <button class="px-3 py-1 rounded-full bg-white/8" (click)="cancelEdit()">Cancel</button>
-          <button *ngIf="editing" class="px-3 py-1 rounded-full bg-yellow-400 text-indigo-950" (click)="savePermanentEdit()">Save Changes</button>
-          <button *ngIf="showSaveConfirm" class="px-3 py-1 rounded-full bg-yellow-400 text-indigo-950" (click)="savePermanent()">Save Permanent</button>
+          <button class="px-3 py-1 rounded-full bg-yellow-400 text-indigo-950" (click)="saveOrUpdatePermanent()">
+            {{ editing ? 'Save Changes' : 'Save Permanent' }}
+          </button>
         </div>
       </div>
     </div>

@@ -42,6 +42,11 @@ export const routes: Routes = [
       },
       { path: 'add-memory', component: AddMemoryComponent },
       { path: 'memories', component: MemoriesComponent },
+      {
+        path: 'emergencyhelp',
+        loadComponent: () =>
+          import('./emergencyhelp/emergencyhelp').then((m) => m.EmergencyHelpComponent),
+      },
     ],
   },
 
