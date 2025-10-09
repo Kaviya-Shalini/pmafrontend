@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -11,18 +11,146 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
   templateUrl: './auth.html',
   styleUrls: ['./auth.css'],
 })
-export class AuthComponent {
+export class AuthComponent implements AfterViewInit {
   isLogin = true;
   loading = false;
   successMessage = '';
   errorMessage = '';
+  useFaceLogin = false;
+  showFaceRegistrationPrompt = false;
+  registeredUserId = '';
+
+  @ViewChild('videoElement') videoElement: ElementRef | undefined;
 
   constructor(private http: HttpClient, private router: Router) {}
+
+  ngAfterViewInit() {
+    if (this.isLogin && this.useFaceLogin) {
+      this.startCamera();
+    }
+  }
 
   toggleMode() {
     this.isLogin = !this.isLogin;
     this.successMessage = '';
     this.errorMessage = '';
+    this.useFaceLogin = false;
+    this.stopCamera();
+  }
+
+  toggleFaceLogin() {
+    this.useFaceLogin = !this.useFaceLogin;
+    if (this.useFaceLogin) {
+      this.startCamera();
+    } else {
+      this.stopCamera();
+    }
+  }
+
+  startCamera() {
+    if (navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices
+        .getUserMedia({ video: true })
+        .then((stream) => {
+          if (this.videoElement) {
+            this.videoElement.nativeElement.srcObject = stream;
+          }
+        })
+        .catch((err) => {
+          this.errorMessage = 'Could not access camera. Please allow camera access.';
+        });
+    }
+  }
+
+  stopCamera() {
+    if (this.videoElement && this.videoElement.nativeElement.srcObject) {
+      const stream = this.videoElement.nativeElement.srcObject as MediaStream;
+      stream.getTracks().forEach((track) => track.stop());
+    }
+  }
+
+  captureAndLogin() {
+    this.capture().then((blob) => {
+      const formData = new FormData();
+      formData.append('face', blob, 'face.jpg');
+
+      this.loading = true;
+      this.http
+        .post<{
+          success: boolean;
+          message: string;
+          userId?: string;
+          quickQuestionAnswered?: boolean;
+        }>('http://localhost:8080/api/login-face', formData)
+        .subscribe({
+          next: (res) => {
+            this.loading = false;
+            if (res.success && res.userId) {
+              localStorage.setItem('pma-userId', res.userId);
+              localStorage.setItem('pma-quickQuestionAnswered', String(res.quickQuestionAnswered));
+              this.successMessage = 'Login successful!';
+              setTimeout(() => this.router.navigate(['/dashboard']), 1000);
+            } else {
+              this.errorMessage = res.message || 'Face not recognized.';
+            }
+          },
+          error: (err) => {
+            this.loading = false;
+            this.errorMessage = err.error?.message || 'Server error during face login.';
+          },
+        });
+    });
+  }
+
+  captureAndRegisterFace() {
+    this.capture().then((blob) => {
+      const formData = new FormData();
+      formData.append('userId', this.registeredUserId);
+      formData.append('face', blob, 'face.jpg');
+
+      this.http.post('http://localhost:8080/api/register-face', formData).subscribe({
+        next: () => {
+          this.successMessage = 'Face registered successfully!';
+          this.showFaceRegistrationPrompt = false;
+          this.stopCamera();
+          setTimeout(() => this.toggleMode(), 1500); // Switch to login
+        },
+        error: () => {
+          this.errorMessage = 'Failed to register face.';
+        },
+      });
+    });
+  }
+
+  skipFaceRegistration() {
+    this.showFaceRegistrationPrompt = false;
+    this.stopCamera();
+    this.toggleMode(); // Switch to login
+  }
+
+  private capture(): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      if (this.videoElement) {
+        const canvas = document.createElement('canvas');
+        canvas.width = this.videoElement.nativeElement.videoWidth;
+        canvas.height = this.videoElement.nativeElement.videoHeight;
+        const context = canvas.getContext('2d');
+        if (context) {
+          context.drawImage(this.videoElement.nativeElement, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject('Could not create blob from canvas.');
+            }
+          }, 'image/jpeg');
+        } else {
+          reject('Could not get 2D context from canvas.');
+        }
+      } else {
+        reject('Video element not found.');
+      }
+    });
   }
 
   submit(formValue: any) {
@@ -70,11 +198,10 @@ export class AuthComponent {
           next: (res) => {
             this.loading = false;
             if (res.success && res.userId) {
-              localStorage.setItem('pma-userId', res.userId);
-              // --- STORE THE NEW FLAG ---
-              localStorage.setItem('pma-quickQuestionAnswered', String(res.quickQuestionAnswered));
               this.successMessage = res.message || 'Account created successfully!';
-              setTimeout(() => this.toggleMode(), 1500);
+              this.registeredUserId = res.userId;
+              this.showFaceRegistrationPrompt = true;
+              setTimeout(() => this.startCamera(), 0);
             } else {
               this.errorMessage = res.message || 'Failed to create account.';
             }
