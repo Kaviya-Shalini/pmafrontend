@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -11,7 +11,7 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
   templateUrl: './auth.html',
   styleUrls: ['./auth.css'],
 })
-export class AuthComponent implements AfterViewInit {
+export class AuthComponent implements AfterViewInit, OnDestroy {
   isLogin = true;
   loading = false;
   successMessage = '';
@@ -28,6 +28,11 @@ export class AuthComponent implements AfterViewInit {
     if (this.isLogin && this.useFaceLogin) {
       this.startCamera();
     }
+  }
+
+  // **ADD OnDestroy LIFECYCLE HOOK**
+  ngOnDestroy() {
+    this.stopCamera();
   }
 
   toggleMode() {
@@ -66,6 +71,7 @@ export class AuthComponent implements AfterViewInit {
     if (this.videoElement && this.videoElement.nativeElement.srcObject) {
       const stream = this.videoElement.nativeElement.srcObject as MediaStream;
       stream.getTracks().forEach((track) => track.stop());
+      this.videoElement.nativeElement.srcObject = null;
     }
   }
 
@@ -89,6 +95,8 @@ export class AuthComponent implements AfterViewInit {
               localStorage.setItem('pma-userId', res.userId);
               localStorage.setItem('pma-quickQuestionAnswered', String(res.quickQuestionAnswered));
               this.successMessage = 'Login successful!';
+              // **STOP CAMERA ON SUCCESS**
+              this.stopCamera();
               setTimeout(() => this.router.navigate(['/dashboard']), 1000);
             } else {
               this.errorMessage = res.message || 'Face not recognized.';
@@ -104,16 +112,20 @@ export class AuthComponent implements AfterViewInit {
 
   captureAndRegisterFace() {
     this.capture().then((blob) => {
+      // ✅ Create form data
       const formData = new FormData();
+
+      // ✅ Add userId and face image to the form data
       formData.append('userId', this.registeredUserId);
       formData.append('face', blob, 'face.jpg');
 
+      // ✅ Send form data to backend
       this.http.post('http://localhost:8080/api/register-face', formData).subscribe({
         next: () => {
           this.successMessage = 'Face registered successfully!';
           this.showFaceRegistrationPrompt = false;
           this.stopCamera();
-          setTimeout(() => this.toggleMode(), 1500); // Switch to login
+          setTimeout(() => this.toggleMode(), 1500); // Switch to login mode
         },
         error: () => {
           this.errorMessage = 'Failed to register face.';
@@ -175,6 +187,8 @@ export class AuthComponent implements AfterViewInit {
               localStorage.setItem('pma-username', formValue.username); // <-- ADD THIS LINE
               localStorage.setItem('pma-quickQuestionAnswered', String(res.quickQuestionAnswered));
               this.successMessage = 'Login successful!';
+              // **STOP CAMERA ON SUCCESS**
+              this.stopCamera();
               setTimeout(() => this.router.navigate(['/dashboard']), 1000);
             } else {
               this.errorMessage = res.message || 'Invalid credentials.';
