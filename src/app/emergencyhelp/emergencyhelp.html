@@ -1,9 +1,8 @@
-
-<div class="min-h-screen w-full px-6 py-16 
-            bg-gradient-to-tr from-indigo-950 via-purple-950 to-pink-950 
-            text-white rounded-3xl border border-pink-500/20 
-            shadow-[0_0_60px_rgba(0,0,0,0.6),0_0_30px_rgba(255,0,150,0.2)] 
-            relative overflow-hidden">
+<!-- emergencyhelp.html -->
+<div
+  class="min-h-screen w-full px-6 py-16 bg-gradient-to-tr from-indigo-950 via-purple-950 to-pink-950 
+  text-white rounded-3xl border border-pink-500/20 
+  shadow-[0_0_60px_rgba(0,0,0,0.6),0_0_30px_rgba(255,0,150,0.2)] relative overflow-hidden">
 
   <!-- Floating Glows -->
   <div class="absolute top-24 left-10 w-[300px] h-[300px] bg-pink-400 opacity-30 blur-[140px] animate-pulse-slow"></div>
@@ -18,11 +17,14 @@
 
     <!-- Search -->
     <div class="flex items-center gap-3 w-full md:w-auto">
-      <input type="text" [(ngModel)]="searchTerm"
-             placeholder="Search name, relationship or number..."
-             class="w-full md:w-80 px-3 py-2 rounded-lg bg-white/5 border border-white/10 placeholder:text-slate-300/60 
-                    focus:ring-2 focus:ring-pink-400 focus:border-pink-400 
-                    transition duration-300 outline-none" />
+      <input
+        type="text"
+        [(ngModel)]="searchTerm"
+        placeholder="Search name, relationship or number..."
+        class="w-full md:w-80 px-3 py-2 rounded-lg bg-white/5 border border-white/10 placeholder:text-slate-300/60 
+        focus:ring-2 focus:ring-pink-400 focus:border-pink-400 
+        transition duration-300 outline-none"
+      />
     </div>
   </div>
 
@@ -30,57 +32,90 @@
   <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10">
 
     <!-- Add Contact -->
-    <div class="col-span-1 bg-white/10 p-5 rounded-2xl border border-white/10 shadow-xl backdrop-blur-md">
-      <h2 class="text-lg font-bold mb-3">{{ editingId ? 'Edit Contact' : 'Add Contact' }}</h2>
+    <div
+      class="col-span-1 bg-white/10 p-5 rounded-2xl border border-white/10 shadow-xl backdrop-blur-md">
+      <h2 class="text-lg font-bold mb-3">
+        {{ editingId ? 'Edit Contact' : 'Add Contact' }}
+      </h2>
 
       <form [formGroup]="form" (ngSubmit)="addOrUpdateContact()" class="space-y-3">
         <div>
           <label class="block text-sm text-slate-300 mb-1">Name</label>
-          <input formControlName="name" type="text" class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 
-                        focus:ring-2 focus:ring-pink-400 focus:border-pink-400 
-                        transition duration-300 outline-none" placeholder="e.g. John Doe" />
+          <input
+            formControlName="name"
+            type="text"
+            class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 
+            focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition duration-300 outline-none"
+            placeholder="e.g. John Doe"
+          />
         </div>
 
         <div>
           <label class="block text-sm text-slate-300 mb-1">Relationship</label>
-          <input formControlName="relationship" type="text" class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 
-                        focus:ring-2 focus:ring-pink-400 focus:border-pink-400 
-                        transition duration-300 outline-none" placeholder="e.g. Mother" />
+          <input
+            formControlName="relationship"
+            type="text"
+            class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 
+            focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition duration-300 outline-none"
+            placeholder="e.g. Mother"
+          />
         </div>
 
         <div>
           <label class="block text-sm text-slate-300 mb-1">Phone</label>
-          <input formControlName="phone" type="text" class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 
-                        focus:ring-2 focus:ring-pink-400 focus:border-pink-400 
-                        transition duration-300 outline-none" placeholder="+91 98765 43210" />
+          <input
+            formControlName="phone"
+            type="text"
+            class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 
+            focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition duration-300 outline-none"
+            placeholder="+91 98765 43210"
+          />
         </div>
 
         <!-- Photo Upload -->
         <div>
           <label class="block text-sm text-slate-300 mb-2">Photo</label>
           <div class="flex items-center gap-3">
-            <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10">
+            <label
+              class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-lg 
+              bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-white/10 hover:scale-105 
+              hover:from-pink-400/40 hover:to-purple-400/40 transition-all duration-300">
               <input (change)="onFileChange($event)" type="file" accept="image/*" class="hidden" />
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 7h4l2-3h6l2 3h4v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <path d="M3 7h4l2-3h6l2 3h4v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
               </svg>
               <span class="text-sm">Upload</span>
             </label>
 
-            <div class="w-16 h-16 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
-              <img *ngIf="previewUrl" [src]="previewUrl" class="object-cover w-full h-full" alt="preview" />
-              <div *ngIf="!previewUrl" class="text-slate-300/60 text-xs text-center p-1">Preview</div>
-            </div>
+           <div
+  class="w-16 h-16 rounded-lg border border-white/10 flex items-center justify-center overflow-hidden"
+  [ngClass]="{'bg-white/5': !previewUrl, 'bg-transparent': previewUrl}"
+>
+  <img
+    *ngIf="previewUrl"
+    [src]="previewUrl"
+    class="object-cover w-full h-full"
+    alt="preview"
+  />
+  <div *ngIf="!previewUrl" class="text-slate-300/60 text-xs text-center p-1">
+    Preview
+  </div>
+</div>
+
           </div>
         </div>
 
         <div class="flex items-center gap-3 mt-3">
-          <button type="submit"
-                  class="flex-1 px-4 py-2 rounded-lg bg-emerald-400 text-slate-900 font-semibold shadow hover:scale-105 transition">
+          <button
+            type="submit"
+            class="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-400 to-green-500 
+            text-slate-900 font-semibold shadow hover:shadow-emerald-400/40 hover:scale-105 transition-all">
             {{ editingId ? 'Update Contact' : 'Add Contact' }}
           </button>
-          <button type="button" (click)="resetForm()"
-                  class="px-4 py-2 rounded-lg bg-white/10 text-white border border-white/10 hover:scale-110 transition">
+          <button
+            type="button"
+            (click)="resetForm()"
+            class="px-4 py-2 rounded-lg bg-white/10 text-white border border-white/10 hover:bg-white/20 hover:scale-105 transition">
             Reset
           </button>
         </div>
@@ -88,22 +123,38 @@
     </div>
 
     <!-- Contact List -->
-    <div class="lg:col-span-2 bg-white/10 p-5 rounded-2xl border border-white/10 shadow-xl backdrop-blur-md">
+    <div
+      class="lg:col-span-2 bg-white/10 p-5 rounded-2xl border border-white/10 shadow-xl backdrop-blur-md">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-lg font-bold">Your Emergency Contacts</h2>
-        <p class="text-sm text-slate-300/80">
-          {{ contacts.length }}/5 saved
-        </p>
+        <p class="text-sm text-slate-300/80">{{ contacts.length }}/5 saved</p>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <ng-container *ngFor="let c of filteredContacts">
-          <div class="flex gap-4 items-center bg-white/5 p-3 rounded-xl border border-white/10 shadow hover:scale-105 transition">
+          <div
+            class="flex gap-4 items-center bg-white/5 p-3 rounded-xl border border-white/10 
+            shadow hover:shadow-pink-500/20 hover:scale-[1.02] transition-all duration-300">
+
             <!-- Avatar -->
-            <div class="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center bg-gradient-to-br from-purple-500 to-pink-600" (click)="openImage(c.photoUrl)">
-              <img *ngIf="c.photoUrl" [src]="c.photoUrl" alt="{{ c.name }}" class="object-cover w-full h-full rounded-xl" />
-              <div *ngIf="!c.photoUrl" class="text-white font-semibold">{{ c.name[0] }}</div>
-            </div>
+            
+<div
+  class="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center cursor-pointer border border-white/10"
+  [ngClass]="{
+    'bg-gradient-to-br from-purple-500 to-pink-600': !c.photoUrl,
+    'bg-transparent': c.photoUrl
+  }"
+  (click)="openImage(c.photoUrl)"
+>
+  <img
+    *ngIf="c.photoUrl"
+    [src]="c.photoUrl"
+    alt="{{ c.name }}"
+    class="object-cover w-full h-full rounded-xl"
+  />
+  <div *ngIf="!c.photoUrl" class="text-white font-semibold">{{ c.name[0] }}</div>
+</div>
+
 
             <!-- Info -->
             <div class="flex-1 min-w-0">
@@ -112,20 +163,62 @@
                   <div class="text-white font-semibold text-sm truncate">{{ c.name }}</div>
                   <div class="text-slate-200/80 text-xs mt-1">{{ c.relationship }}</div>
                 </div>
+
+                <!-- Buttons -->
                 <div class="flex items-center gap-2">
-                  <button (click)="editContact(c)" title="Edit" class="w-8 h-8 rounded-lg bg-white/10 border border-white/20 text-amber-300 hover:text-amber-400 hover:scale-110 transition-all duration-300">
-                    ✏️
-                  </button>
-                  <a [href]="'tel:' + c.phone" title="Call" class="w-8 h-8 rounded-full bg-emerald-500 text-white hover:scale-110 transition-all duration-300 flex items-center justify-center">📞</a>
-                  <button (click)="c.id && deleteContact(c.id)" title="Delete" class="w-8 h-8 rounded-full bg-rose-600 text-white hover:scale-110 transition-all duration-300 flex items-center justify-center">🗑️</button>
+                  <!-- Edit Button -->
+<button (click)="editContact(c)"
+        title="Edit {{ c.name }}"
+        class="inline-flex items-center justify-center w-10 h-10 rounded-lg 
+               bg-white/10 border border-white/20 backdrop-blur-sm 
+               text-amber-300 hover:text-amber-400 hover:scale-110 
+               transition-all duration-300 shadow-md">
+  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z" />
+  </svg>
+</button>
+<!-- Call Button -->
+<a [href]="'tel:' + c.phone"
+   title="Call {{ c.name }}"
+   class="inline-flex items-center justify-center w-10 h-10 rounded-full
+          bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600
+          text-white shadow-lg hover:shadow-emerald-500/50 
+          hover:scale-110 hover:rotate-3 transition-all duration-300 
+          border border-emerald-300/40">
+  <svg xmlns="http://www.w3.org/2000/svg" 
+       fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" 
+       class="w-5 h-5">
+    <path stroke-linecap="round" stroke-linejoin="round" 
+          d="M2 5.5A2.5 2.5 0 0 1 4.5 3h2A2.5 2.5 0 0 1 9 5.5v1A2.5 2.5 0 0 1 6.5 9h-.75A14.25 14.25 0 0 0 15 17.25V16.5A2.5 2.5 0 0 1 17.5 14h1A2.5 2.5 0 0 1 21 16.5v2A2.5 2.5 0 0 1 18.5 21C10.94 21 3 13.06 3 5.5Z" />
+  </svg>
+</a>
+
+<button (click)="deleteContact(c.id)"
+          title="Delete {{ c.name }}"
+          class="inline-flex items-center justify-center w-10 h-10 rounded-full
+                 bg-gradient-to-br from-rose-500 via-red-600 to-pink-700
+                 text-white shadow-md hover:shadow-red-500/50 
+                 hover:scale-110 hover:rotate-3 transition-all duration-300 
+                 border border-red-300/40">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+         viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+         class="w-5 h-5">
+      <path stroke-linecap="round" stroke-linejoin="round"
+            d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-8V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16" />
+    </svg>
+  </button>
                 </div>
               </div>
+
               <div class="mt-1 text-xs text-slate-400">{{ c.phone }}</div>
             </div>
           </div>
         </ng-container>
 
-        <div *ngIf="filteredContacts.length === 0" class="text-center text-slate-400 text-sm py-8">
+        <div
+          *ngIf="filteredContacts.length === 0"
+          class="text-center text-slate-400 text-sm py-8">
           No contacts found.
         </div>
       </div>
@@ -133,17 +226,27 @@
   </div>
 
   <!-- Fullscreen Image Modal -->
-  <div *ngIf="modalImageUrl" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+  <div
+    *ngIf="modalImageUrl"
+    class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
     <div class="relative">
-      <button (click)="closeImage()" class="absolute -top-3 -right-3 bg-red-500 text-white w-8 h-8 rounded-full hover:bg-red-600 transition">
+      <button
+        (click)="closeImage()"
+        class="absolute -top-3 -right-3 bg-red-500 text-white w-8 h-8 rounded-full hover:bg-red-600 transition">
         ✕
       </button>
-      <img [src]="modalImageUrl" class="max-h-[60vh] max-w-[60vw] rounded-lg shadow-2xl border-4 border-white/20" alt="Full view" />
+      <img
+        [src]="modalImageUrl"
+        class="max-h-[60vh] max-w-[60vw] rounded-lg shadow-2xl border-4 border-white/20"
+        alt="Full view"
+      />
     </div>
   </div>
 
   <!-- Toast -->
-  <div *ngIf="toastVisible" class="fixed right-6 bottom-6 bg-emerald-500 text-slate-900 px-4 py-2 rounded-lg shadow-lg z-50">
+  <div
+    *ngIf="toastVisible"
+    class="fixed right-6 bottom-6 bg-emerald-500 text-slate-900 px-4 py-2 rounded-lg shadow-lg z-50">
     {{ toastMessage }}
   </div>
 </div>

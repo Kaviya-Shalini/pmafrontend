@@ -24,14 +24,33 @@
 
     <div *ngIf="familyMembers.length > 0" class="mt-4 pt-4 border-t border-white/10">
         <h3 class="text-lg font-semibold text-green-300 mb-2">Your Connections</h3>
-        <div class="flex flex-wrap gap-4">
-            <div *ngFor="let member of familyMembers" 
-                 (click)="selectMemberAndOpenChat(member)"
-                 class="px-4 py-2 rounded-xl cursor-pointer flex items-center gap-2 bg-white/5 hover:bg-amber-400 hover:text-slate-900 transition">
-                {{ member.username }}
-                <span *ngIf="member.unread" class="bg-red-500 px-2 py-0.5 rounded-full text-xs font-bold text-white">{{ member.unread }}</span>
-            </div>
-        </div>
+       <div class="flex flex-wrap gap-4">
+  <div *ngFor="let member of familyMembers" class="flex items-center gap-3">
+    <div (click)="selectMemberAndOpenChat(member)"
+         class="px-4 py-2 rounded-xl cursor-pointer flex items-center gap-2 bg-white/5 hover:bg-amber-400 hover:text-slate-900 transition">
+      {{ member.username }}
+      <span *ngIf="member.unread"
+            class="bg-red-500 px-2 py-0.5 rounded-full text-xs font-bold text-white">
+        {{ member.unread }}
+      </span>
+    </div>
+<button *ngIf="user?.isAlzheimer"
+        (click)="disconnectFamilyMember(member)"
+        class="w-9 h-9 flex items-center justify-center
+               rounded-full
+               bg-white/10 backdrop-blur-md
+               border border-white/20
+               
+               hover:bg-rose-500 hover:text-white
+               hover:scale-110 active:scale-95
+               transition-all duration-300 shadow-md shadow-rose-900/30">🗑️
+  <i class="fa-solid fa-trash"></i>
+</button>
+
+
+  </div>
+</div>
+
         <div *ngIf="!user?.isAlzheimer" class="mt-2 text-sm text-gray-400">
             Click on a patient's name to view their memories and chat.
         </div>

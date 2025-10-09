@@ -24,6 +24,7 @@ export class EmergencyHelpComponent implements OnInit {
   toastVisible = false;
   toastMessage = '';
   modalImageUrl: string | null = null;
+  private photoToUpload: File | null = null;
 
   constructor(private fb: FormBuilder, private service: EmergencyContactService) {
     this.form = this.fb.group({
@@ -40,22 +41,28 @@ export class EmergencyHelpComponent implements OnInit {
 
   loadContacts() {
     this.service.getAll().subscribe({
-      next: (data) => (this.contacts = data || []),
+      next: (data) => {
+        this.contacts = (data.items || []).map((c: any) => ({
+          ...c,
+          photoUrl:
+            c.photoUrl ||
+            (c.photoFileId ? `http://localhost:8080/api/photo/${c.photoFileId}` : null),
+        }));
+      },
       error: () => this.showToast('Failed to load contacts'),
     });
   }
 
-  // Add or Update — send Partial payload to backend
   addOrUpdateContact() {
     if (this.form.invalid) return;
 
-    const payload: Partial<EmergencyContact> = {
-      name: this.form.value.name,
-      relationship: this.form.value.relationship,
-      phone: this.form.value.phone,
-      photoUrl: typeof this.previewUrl === 'string' ? this.previewUrl : undefined,
-      createdAt: new Date().toISOString(),
-    };
+    const formData = new FormData();
+    formData.append('name', this.form.get('name')?.value);
+    formData.append('relationship', this.form.get('relationship')?.value);
+    formData.append('phone', this.form.get('phone')?.value);
+    if (this.photoToUpload) {
+      formData.append('photo', this.photoToUpload);
+    }
 
     if (this.editingId === null) {
       if (this.contacts.length >= 5) {
@@ -63,12 +70,11 @@ export class EmergencyHelpComponent implements OnInit {
         return;
       }
 
-      this.service.add(payload).subscribe({
+      this.service.add(formData).subscribe({
         next: (added) => {
-          // backend should return saved object with id; if not, assign temporary id
-          if (!added.id) {
-            added.id = Date.now();
-          }
+          added.photoUrl =
+            added.photoUrl || (added.photoFileId ? `/api/photo/${added.photoFileId}` : undefined);
+
           this.contacts.unshift(added);
           this.showToast('Contact added successfully!');
           this.resetForm();
@@ -77,7 +83,7 @@ export class EmergencyHelpComponent implements OnInit {
       });
     } else {
       const id = this.editingId;
-      this.service.update(id, payload).subscribe({
+      this.service.update(id, formData).subscribe({
         next: (updated) => {
           const index = this.contacts.findIndex((c) => c.id === id);
           if (index > -1) this.contacts[index] = updated;
@@ -90,7 +96,6 @@ export class EmergencyHelpComponent implements OnInit {
   }
 
   editContact(c: EmergencyContact) {
-    // safe assignment (may be undefined)
     this.editingId = c.id ?? null;
     this.form.patchValue({
       name: c.name,
@@ -128,6 +133,9 @@ export class EmergencyHelpComponent implements OnInit {
   onFileChange(event: any) {
     const file = event.target.files[0];
     if (!file) return;
+
+    this.photoToUpload = file;
+
     const reader = new FileReader();
     reader.onload = () => (this.previewUrl = reader.result);
     reader.readAsDataURL(file);
@@ -144,6 +152,11 @@ export class EmergencyHelpComponent implements OnInit {
     this.form.reset();
     this.previewUrl = null;
     this.editingId = null;
+    this.photoToUpload = null;
+    const photoInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (photoInput) {
+      photoInput.value = '';
+    }
   }
 
   showToast(msg: string) {

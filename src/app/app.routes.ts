@@ -5,6 +5,7 @@ import { AddMemoryComponent } from './add-memory/add-memory';
 import { AppLayoutComponent } from './app-layout/app-layout';
 import { MyPeopleComponent } from './mypeople/mypeople';
 import { MemoriesComponent } from './memories/memories';
+import { SettingsComponent } from './settings/settings';
 
 export const routes: Routes = [
   // Public routes
@@ -47,6 +48,7 @@ export const routes: Routes = [
       },
       { path: 'add-memory', component: AddMemoryComponent },
       { path: 'memories', component: MemoriesComponent },
+      { path: 'settings', component: SettingsComponent },
     ],
   },
 

@@ -184,7 +184,7 @@ export class LocationComponent implements OnInit {
 
   sendDangerAlert(): void {
     this.http
-      .post(`/api/alerts/danger`, {
+      .post(`http://localhost:8080/api/alerts/danger`, {
         patientId: this.patientId,
         latitude: this.currentLocation?.latitude,
         longitude: this.currentLocation?.longitude,

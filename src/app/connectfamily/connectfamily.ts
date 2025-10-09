@@ -72,12 +72,17 @@ export class ConnectFamilyComponent implements OnInit {
   }
 
   fetchFamilyMembers() {
-    this.http.get<FamilyMember[]>('http://localhost:8080/api/family/list').subscribe((res) => {
-      this.familyMembers = res.map((member) => ({ ...member, unread: 0 }));
-      res.forEach((m) => {
-        if (!this.chats[m.username]) this.chats[m.username] = [];
+    if (!this.user) return;
+    const headers = { 'X-Username': this.user.username };
+
+    this.http
+      .get<FamilyMember[]>('http://localhost:8080/api/family/list', { headers })
+      .subscribe((res) => {
+        this.familyMembers = res.map((member) => ({ ...member, unread: 0 }));
+        res.forEach((m) => {
+          if (!this.chats[m.username]) this.chats[m.username] = [];
+        });
       });
-    });
   }
 
   selectMemberAndOpenChat(member: FamilyMember) {
@@ -111,23 +116,41 @@ export class ConnectFamilyComponent implements OnInit {
       this.toastr.warning('Only patients can add family members.');
       return;
     }
-    this.http.post('http://localhost:8080/api/family/connect', { username }).subscribe(() => {
-      this.toastr.success('Family member connected!');
-      this.form.reset();
-      this.fetchFamilyMembers();
-    });
+
+    const headers = { 'X-Username': this.user.username };
+
+    this.http
+      .post('http://localhost:8080/api/family/connect', { username }, { headers })
+      .subscribe(() => {
+        this.toastr.success('Family member connected!');
+        this.form.reset();
+        this.fetchFamilyMembers();
+      });
   }
 
   disconnectFamilyMember(member: FamilyMember) {
+    if (!this.user) return;
+
     if (confirm(`Are you sure you want to disconnect ${member.username}?`)) {
-      this.http
-        .post('http://localhost:8080/api/family/disconnect', { username: member.username })
-        .subscribe(() => {
+      const headers = { 'X-Username': this.user.username };
+
+      const body = {
+        userId: this.user.userId, // include actual user ID
+        username: member.username,
+      };
+
+      this.http.post('http://localhost:8080/api/family/disconnect', body, { headers }).subscribe({
+        next: (res: any) => {
           this.toastr.info(`${member.username} disconnected.`);
           this.fetchFamilyMembers();
           delete this.chats[member.username];
           if (this.selectedMember?.id === member.id) this.selectedMember = null;
-        });
+        },
+        error: (err) => {
+          console.error('❌ Error disconnecting:', err);
+          this.toastr.error('Failed to disconnect family member');
+        },
+      });
     }
   }
 

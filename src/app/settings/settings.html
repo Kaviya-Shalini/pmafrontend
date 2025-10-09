@@ -1,0 +1,77 @@
+<div
+  class="min-h-screen w-full flex flex-col 
+         bg-gradient-to-tr from-indigo-950 via-purple-950 to-pink-950 
+         text-white relative overflow-hidden rounded-3xl p-8">
+
+  <!-- Floating Glows -->
+  <div class="absolute top-20 left-10 w-[400px] h-[400px] bg-pink-500 opacity-30 blur-[160px] animate-pulse-slow"></div>
+  <div class="absolute bottom-20 right-10 w-[400px] h-[400px] bg-indigo-400 opacity-20 blur-[180px] animate-pulse-slow"></div>
+
+  <!-- Header -->
+  <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 z-10">
+    <div>
+      <h1 class="text-4xl font-extrabold tracking-wide drop-shadow-lg">
+        Settings - <span class="text-yellow-300">{{ user?.username }}</span>
+      </h1>
+      <p class="text-sm opacity-70 mt-2">Manage your account & learn about the app ✨</p>
+    </div>
+    <span *ngIf="user?.isAlzheimer"
+      class="px-4 py-1 bg-red-500/20 text-red-300 text-sm rounded-full mt-4 md:mt-0 shadow-md">
+      🧠 Alzheimer Patient
+    </span>
+  </header>
+
+  <!-- User Info Card -->
+  <section class="bg-white/10 p-6 rounded-2xl shadow-2xl backdrop-blur-md border border-white/10 mb-8 z-10">
+    <h2 class="text-2xl font-bold text-yellow-300 mb-4">User Details</h2>
+    <div class="flex flex-col gap-2 text-white">
+      <p><strong>Username:</strong> {{ user?.username }}</p>
+      <!-- <p><strong>Email:</strong> {{ user?.email || '-' }}</p> -->
+      <p><strong>Alzheimer:</strong> {{ user?.isAlzheimer ? 'Yes 🧠' : 'No' }}</p>
+      <!-- <p><strong>Joined:</strong> {{ user?.createdAt | date:'mediumDate' }}</p> -->
+    </div>
+
+    <div class="mt-6">
+      <button
+        (click)="deleteAccount()"
+        class="px-6 py-2 rounded-lg bg-rose-500 hover:bg-rose-600 text-white font-semibold shadow hover:scale-105 transition-all duration-300">
+        Delete Account
+      </button>
+    </div>
+  </section>
+
+  <!-- About Section -->
+  <section class="bg-white/10 p-6 rounded-2xl shadow-2xl backdrop-blur-md border border-white/10 mb-8 z-10">
+    <h2 class="text-2xl font-bold text-yellow-300 mb-4">About Memory Care App</h2>
+    <h1 class="text-white/90 mb-4">
+      Memory Care is a personalized digital assistant designed to help individuals, especially those with Alzheimer’s or memory challenges, keep track of important events, memories, and emergency contacts.
+      <br><br>
+      Features include:
+      <ul class="list-disc list-inside mt-2">
+        <li>Personalized memory dashboard</li>
+        <li>Emergency contact management</li>
+        <li>Daily motivation and reminders</li>
+        <li>Charts showing memory trends</li>
+        <li>Offline support for secure data management</li>
+      </ul>
+    </h1>
+    <h3 class="text-lg font-semibold text-yellow-300 mt-4">Contact for Support</h3>
+    <p class="text-white/80 mt-1">
+      For troubleshooting, feedback, or inquiries, reach out via:
+      <br>Email: <a href="mailto:support@memorycare.app" class="underline text-indigo-300">support@memorycare.app</a>
+      <br>Phone: <a href="tel:+911234567890" class="underline text-indigo-300">+91 12345 67890</a>
+    </p>
+  </section>
+
+  <!-- Footer -->
+  <footer class="text-center py-6 text-sm opacity-70 mt-auto z-10">
+    © 2025 Memory Care • Designed with 💜 for Compassion
+  </footer>
+
+  <!-- Toast -->
+  <div
+    *ngIf="toastVisible"
+    class="fixed right-6 bottom-6 bg-emerald-500 text-slate-900 px-4 py-2 rounded-lg shadow-lg z-50">
+    {{ toastMessage }}
+  </div>
+</div>
