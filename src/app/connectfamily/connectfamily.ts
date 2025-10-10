@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { timer } from 'rxjs';
+import { timer, Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { ToastrService } from 'ngx-toastr';
 
@@ -33,6 +33,8 @@ interface User {
 })
 export class ConnectFamilyComponent implements OnInit {
   // Component State
+  pollingSub?: Subscription;
+
   showChatPanel = false;
   memories: any[] = [];
   user: User | null = null;
@@ -54,7 +56,17 @@ export class ConnectFamilyComponent implements OnInit {
 
   ngOnInit(): void {
     this.fetchCurrentUser();
-    this.pollMessages();
+
+    // Start message polling ONCE
+    if (!this.pollingSub) {
+      this.startPollingMessages();
+    }
+  }
+  ngOnDestroy(): void {
+    if (this.pollingSub) {
+      this.pollingSub.unsubscribe();
+      this.pollingSub = undefined;
+    }
   }
 
   fetchCurrentUser() {
@@ -161,12 +173,20 @@ export class ConnectFamilyComponent implements OnInit {
 
   openChat(member: FamilyMember) {
     this.selectedMember = member;
-    member.unread = 0;
+    member.unread = 0; // Reset unread count for this member
     this.showChatPanel = true;
+
+    const headers = { 'X-Username': this.user?.username || '' };
+
     this.http
-      .get<ChatMessage[]>(`http://localhost:8080/api/chat/conversation?other=${member.username}`)
+      .get<ChatMessage[]>(`http://localhost:8080/api/chat/conversation?other=${member.username}`, {
+        headers,
+      })
       .subscribe((res) => {
         this.chats[member.username] = res;
+
+        // Optional: mark all received messages as "read" on backend
+        // (You can create a /api/chat/markAsRead endpoint if needed)
       });
   }
 
@@ -182,29 +202,37 @@ export class ConnectFamilyComponent implements OnInit {
       });
   }
 
-  pollMessages() {
-    timer(0, 5000).subscribe(() => {
+  startPollingMessages() {
+    // Run every 5 seconds
+    this.pollingSub = timer(0, 5000).subscribe(() => {
       if (!this.user) return;
-      this.http.get<ChatMessage[]>(`http://localhost:8080/api/chat/receive`).subscribe((res) => {
-        res.forEach((msg) => {
-          const sender = msg.fromUser;
-          const exists = this.chats[sender]?.some(
-            (m) => new Date(m.createdAt).getTime() === new Date(msg.createdAt).getTime()
-          );
-          if (!exists) {
+
+      const headers = { 'X-Username': this.user.username };
+
+      this.http
+        .get<ChatMessage[]>(`http://localhost:8080/api/chat/receive`, { headers })
+        .subscribe((res) => {
+          res.forEach((msg) => {
+            const sender = msg.fromUser;
+
+            // Skip if message already exists (avoid duplicates)
+            const exists = this.chats[sender]?.some(
+              (m) => new Date(m.createdAt).getTime() === new Date(msg.createdAt).getTime()
+            );
+            if (exists) return;
+
+            // Add to chat
             if (!this.chats[sender]) this.chats[sender] = [];
             this.chats[sender].push(msg);
+
+            // Handle unread counts only if the chat isn't currently open
             const member = this.familyMembers.find((m) => m.username === sender);
-            if (
-              member &&
-              (!this.selectedMember || this.selectedMember.username !== member.username)
-            ) {
+            if (member && (!this.selectedMember || this.selectedMember.username !== sender)) {
               member.unread = (member.unread || 0) + 1;
               this.toastr.info(`New message from ${member.username}`);
             }
-          }
+          });
         });
-      });
     });
   }
 

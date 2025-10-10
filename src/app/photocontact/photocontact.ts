@@ -76,6 +76,7 @@ export class PhotoContactsComponent implements OnInit {
     }
 
     const fd = new FormData();
+    fd.append('userId', localStorage.getItem('pma-userId')!);
     fd.append('name', this.form.value.name.trim());
     fd.append('relationship', this.form.value.relationship.trim());
     fd.append('phone', this.form.value.phone.trim());
@@ -135,7 +136,13 @@ export class PhotoContactsComponent implements OnInit {
   }
 
   loadContacts(page = this.page) {
-    this.svc.getContacts(page, this.size, this.searchTerm).subscribe({
+    const userId = localStorage.getItem('pma-userId');
+    if (!userId) {
+      console.error('User not logged in');
+      return;
+    }
+
+    this.svc.getUserContacts(userId, page, this.size, this.searchTerm).subscribe({
       next: (res) => {
         // ✅ Fix photo URLs here
         if (res.items) {

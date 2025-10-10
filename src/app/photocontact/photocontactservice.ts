@@ -28,18 +28,9 @@ export class PhotoContactsService {
   deleteContact(id: string) {
     return this.http.delete(`${this.base}/${id}`);
   }
-
-  // Get contacts with pagination and search
-  getContacts(
-    page = 0,
-    size = 10,
-    q = ''
-  ): Observable<{ items: PhotoContact[]; total: number; page: number; size: number }> {
-    let params = new HttpParams().set('page', `${page}`).set('size', `${size}`);
-    if (q && q.trim().length) params = params.set('q', q.trim());
+  getUserContacts(userId: string, page: number, size: number, search: string = '') {
     return this.http.get<{ items: PhotoContact[]; total: number; page: number; size: number }>(
-      this.base,
-      { params }
+      `${this.base}/by-user/${userId}?page=${page}&size=${size}&q=${search}`
     );
   }
 }

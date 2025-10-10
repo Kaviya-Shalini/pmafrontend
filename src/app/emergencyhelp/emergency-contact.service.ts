@@ -38,4 +38,9 @@ export class EmergencyContactService {
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
+  getUserContacts(userId: string, page: number, size: number, search: string = '') {
+    return this.http.get<{ items: EmergencyContact[]; total: number; page: number; size: number }>(
+      `${this.apiUrl}/emergency/${userId}?page=${page}&size=${size}&q=${search}`
+    );
+  }
 }

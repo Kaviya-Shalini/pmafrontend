@@ -118,10 +118,13 @@ export class MyPeopleComponent implements OnInit {
       // Add new photo
       if (!this.form.value.photo) return;
 
+      const userId = localStorage.getItem('pma-userId');
+      if (!userId) return;
+
       const formData = new FormData();
       formData.append('photo', this.form.value.photo);
       formData.append('caption', this.form.value.caption);
-
+      formData.append('userId', userId);
       this.uploading = true;
       this.http.post(`http://localhost:8080/api/mypeople`, formData).subscribe({
         next: () => {
@@ -138,16 +141,38 @@ export class MyPeopleComponent implements OnInit {
     }
   }
 
-  // Load photos with pagination
+  // Load photos with pagination for logged-in user
   loadPhotos() {
+    const userId = localStorage.getItem('pma-userId'); // get logged-in user's ID
+    if (!userId) {
+      console.error('User not logged in');
+      return;
+    }
+
     let params: any = { page: this.page, size: this.size };
     if (this.searchTerm) params.search = this.searchTerm;
 
     this.http
-      .get<{ data: PhotoEntry[]; total: number }>('http://localhost:8080/api/mypeople', { params })
-      .subscribe((res) => {
-        this.photos = res.data;
-        this.total = res.total;
+      .get<{ data: PhotoEntry[]; total: number }>(
+        `http://localhost:8080/api/mypeople/user/${userId}`,
+        { params }
+      )
+      .subscribe({
+        next: (res) => {
+          // Fix photo URLs for frontend if they don't start with http
+          res.data.forEach((photo) => {
+            if (photo.photoUrl && !photo.photoUrl.startsWith('http')) {
+              photo.photoUrl = `http://localhost:8080${photo.photoUrl}`;
+            }
+          });
+
+          this.photos = res.data;
+          this.total = res.total;
+        },
+        error: (err) => {
+          console.error('Failed to load user photos', err);
+          this.showToast('Failed to load photos');
+        },
       });
   }
 

@@ -53,7 +53,6 @@ export class AddMemoryComponent implements OnInit {
 
   fileStatus: string = '';
   fileSuccess: boolean = false;
-  memories: any[] = [];
 
   constructor(
     private fb: FormBuilder,
@@ -89,27 +88,7 @@ export class AddMemoryComponent implements OnInit {
     if (answered === 'true') {
       this.askingPatient = false;
       this.showForm = true;
-      this.loadMemories();
     }
-  }
-  loadMemories() {
-    const userId = this.form.value.userId;
-
-    if (!userId) {
-      console.warn('User ID missing. Cannot load memories.');
-      return;
-    }
-
-    this.http.get<any[]>(`http://localhost:8080/api/memories/${userId}`).subscribe({
-      next: (data) => {
-        console.log('Loaded memories:', data);
-        // You can store them in a variable to show in the template if needed
-        this.memories = data;
-      },
-      error: (err) => {
-        console.error('Error loading memories:', err);
-      },
-    });
   }
 
   @HostListener('document:click', ['$event'])

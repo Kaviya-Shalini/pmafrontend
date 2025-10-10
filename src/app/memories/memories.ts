@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
-import { Router } from '@angular/router';
+
 @Component({
   selector: 'app-memories',
   standalone: true,
@@ -22,55 +22,45 @@ export class MemoriesComponent implements OnInit {
   totalPages: number = 0;
   showConfirmDialog: boolean = false;
   confirmedMemoryId: string = '';
-  userId: string = '';
-  constructor(private http: HttpClient, private toastr: ToastrService, private router: Router) {}
+  userId: string | null = null;
+  // 👈 logged-in user's ID
+
+  constructor(private http: HttpClient, private toastr: ToastrService) {}
 
   ngOnInit(): void {
-    // 👇 **ADD THIS LOGIC TO GET THE USER ID**
-    // Get the user from local storage (assuming you store it there after login)
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    this.userId = user?.id; // Or however the ID is stored in your user object
-
-    if (this.userId) {
-      this.loadMemories();
-    } else {
-      this.toastr.error(
-        'Could not identify the current user. Please log in again.',
-        'Authentication Error'
-      );
+    this.userId = localStorage.getItem('pma-userId');
+    if (!this.userId) {
+      console.error('User ID not found in localStorage');
+      return;
     }
+
+    this.loadMemories();
   }
 
-  // 🔹 Load memories from backend with pagination
+  // ✅ Fetch only memories of the logged-in user
   loadMemories(): void {
-    // Now this URL will be correct
-    this.http
-      .get(
-        `http://localhost:8080/api/memories/user/${this.userId}?page=${this.page}&size=${this.size}`
-      )
-      .subscribe((res: any) => {
-        this.memories = res.content || res;
-        this.filteredMemories = this.memories;
-        this.totalPages = res.totalPages || 1;
-      });
-  }
+    if (!this.userId) return;
 
-  // 🔹 Search memories by title or category
+    const url = `http://localhost:8080/api/memories/user/${this.userId}?page=${this.page}&size=${this.size}`;
+    this.http.get(url).subscribe((res: any) => {
+      this.memories = res.content || [];
+      this.filteredMemories = this.memories;
+      this.totalPages = res.totalPages || 1;
+    });
+  }
+  // ✅ Search only within the user's memories
   searchMemories(): void {
     const term = this.searchTerm.trim();
-    // And this URL will also be correct
-    this.http
-      .get(
-        `http://localhost:8080/api/memories/user/${this.userId}?page=0&size=${this.size}&search=${term}`
-      )
-      .subscribe((res: any) => {
-        this.memories = res.content || [];
-        this.filteredMemories = this.memories;
-        this.totalPages = res.totalPages || 1;
-      });
+    if (!this.userId) return;
+
+    const url = `http://localhost:8080/api/memories/user/${this.userId}?page=0&size=${this.size}&search=${term}`;
+    this.http.get(url).subscribe((res: any) => {
+      this.memories = res.content || [];
+      this.filteredMemories = this.memories;
+      this.totalPages = res.totalPages || 1;
+    });
   }
 
-  // 🔹 Pagination - previous page
   prevPage(): void {
     if (this.page > 0) {
       this.page--;
@@ -78,7 +68,6 @@ export class MemoriesComponent implements OnInit {
     }
   }
 
-  // 🔹 Pagination - next page
   nextPage(): void {
     if (this.page + 1 < this.totalPages) {
       this.page++;
@@ -86,17 +75,14 @@ export class MemoriesComponent implements OnInit {
     }
   }
 
-  // 🔹 Open memory in modal
   openMemory(memory: any): void {
     this.selectedMemory = memory;
   }
 
-  // 🔹 Close modal
   closeModal(): void {
     this.selectedMemory = null;
   }
 
-  // 🔹 Download attached file
   downloadFile(memoryId: string): void {
     this.http
       .get(`http://localhost:8080/api/memories/${memoryId}/download?type=file`, {
@@ -118,24 +104,23 @@ export class MemoriesComponent implements OnInit {
         responseType: 'blob',
       })
       .subscribe((blob) => {
-        console.log('Blob type:', blob.type); // should be 'audio/mpeg' or similar
         const url = window.URL.createObjectURL(blob);
         const audio = new Audio(url);
         audio.play().catch((err) => console.error('Audio play error:', err));
       });
   }
-  // 🔹 Show delete confirmation
+
   confirmDelete(memoryId: string) {
     this.confirmedMemoryId = memoryId;
     this.showConfirmDialog = true;
-    this.selectedMemory = null; // hide the details modal
+    this.selectedMemory = null;
   }
 
-  // 🔹 Cancel delete
   cancelDelete() {
     this.showConfirmDialog = false;
     this.confirmedMemoryId = '';
   }
+
   deleteMemory(memoryId: string): void {
     this.http
       .delete<{ success: boolean; message: string }>(
@@ -152,7 +137,7 @@ export class MemoriesComponent implements OnInit {
           }
           this.cancelDelete();
         },
-        error: (err) => {
+        error: () => {
           this.toastr.error('Failed to delete memory', 'Error');
           this.cancelDelete();
         },

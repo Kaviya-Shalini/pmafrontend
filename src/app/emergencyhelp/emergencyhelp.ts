@@ -40,13 +40,15 @@ export class EmergencyHelpComponent implements OnInit {
   }
 
   loadContacts() {
-    this.service.getAll().subscribe({
-      next: (data) => {
+    const userId = localStorage.getItem('pma-userId');
+    if (!userId) return;
+
+    this.service.getUserContacts(userId, 0, 5).subscribe({
+      next: (data: any) => {
         this.contacts = (data.items || []).map((c: any) => ({
           ...c,
           photoUrl:
-            c.photoUrl ||
-            (c.photoFileId ? `http://localhost:8080/api/photo/${c.photoFileId}` : null),
+            c.photoUrl || (c.photoFileId ? `/api/emergencycontacts/photo/${c.photoFileId}` : null),
         }));
       },
       error: () => this.showToast('Failed to load contacts'),
@@ -57,12 +59,11 @@ export class EmergencyHelpComponent implements OnInit {
     if (this.form.invalid) return;
 
     const formData = new FormData();
+    formData.append('userId', localStorage.getItem('pma-userId')!);
     formData.append('name', this.form.get('name')?.value);
     formData.append('relationship', this.form.get('relationship')?.value);
     formData.append('phone', this.form.get('phone')?.value);
-    if (this.photoToUpload) {
-      formData.append('photo', this.photoToUpload);
-    }
+    if (this.photoToUpload) formData.append('photo', this.photoToUpload);
 
     if (this.editingId === null) {
       if (this.contacts.length >= 5) {
@@ -73,8 +74,8 @@ export class EmergencyHelpComponent implements OnInit {
       this.service.add(formData).subscribe({
         next: (added) => {
           added.photoUrl =
-            added.photoUrl || (added.photoFileId ? `/api/photo/${added.photoFileId}` : undefined);
-
+            added.photoUrl ||
+            (added.photoFileId ? `/api/emergencycontacts/photo/${added.photoFileId}` : undefined);
           this.contacts.unshift(added);
           this.showToast('Contact added successfully!');
           this.resetForm();

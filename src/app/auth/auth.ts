@@ -187,6 +187,7 @@ export class AuthComponent implements AfterViewInit, OnDestroy {
               localStorage.setItem('pma-username', formValue.username); // <-- ADD THIS LINE
               localStorage.setItem('pma-quickQuestionAnswered', String(res.quickQuestionAnswered));
               this.successMessage = 'Login successful!';
+              localStorage.setItem('user', JSON.stringify(res.userId));
               // **STOP CAMERA ON SUCCESS**
               this.stopCamera();
               setTimeout(() => this.router.navigate(['/dashboard']), 1000);
