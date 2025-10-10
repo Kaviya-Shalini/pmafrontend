@@ -74,6 +74,25 @@ export class AuthComponent implements AfterViewInit, OnDestroy {
       this.videoElement.nativeElement.srcObject = null;
     }
   }
+  logout() {
+    // Clear all user-related local storage
+    localStorage.removeItem('pma-userId');
+    localStorage.removeItem('pma-username');
+    localStorage.removeItem('pma-quickQuestionAnswered');
+    localStorage.removeItem('user');
+
+    // Stop camera if active
+    this.stopCamera();
+
+    // Reset component state
+    this.isLogin = true;
+    this.successMessage = '';
+    this.errorMessage = '';
+    this.useFaceLogin = false;
+
+    // Redirect to login page
+    this.router.navigate(['/login']);
+  }
 
   captureAndLogin() {
     this.capture().then((blob) => {

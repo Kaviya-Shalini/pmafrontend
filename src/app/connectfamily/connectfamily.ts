@@ -71,12 +71,19 @@ export class ConnectFamilyComponent implements OnInit {
 
   fetchCurrentUser() {
     const userId = localStorage.getItem('pma-userId');
-    if (!userId) return;
+    if (!userId) {
+      // If user logged out, reset component state
+      this.user = null;
+      this.familyMembers = [];
+      this.chats = {};
+      this.selectedMember = null;
+      this.showChatPanel = false;
+      return;
+    }
 
     this.http.get<User>(`http://localhost:8080/api/user/${userId}`).subscribe((res) => {
       this.user = res;
       this.fetchFamilyMembers();
-      // If the current user is the patient, load their memories by default
       if (res.isAlzheimer) {
         this.loadMemories(res.userId);
       }
