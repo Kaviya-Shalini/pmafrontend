@@ -7,6 +7,17 @@
   <!-- Floating Glows -->
   <div class="absolute top-20 left-10 w-[400px] h-[400px] bg-pink-500 opacity-30 blur-[160px] animate-pulse-slow"></div>
   <div class="absolute bottom-20 right-10 w-[400px] h-[400px] bg-indigo-400 opacity-20 blur-[180px] animate-pulse-slow"></div>
+  <div *ngIf="alerts.length > 0" class="fixed top-4 right-4 z-50">
+  <div
+    *ngFor="let alert of alerts"
+    class="bg-red-600 text-white p-4 rounded-xl shadow-lg mb-3 animate-pulse"
+  >
+    <strong>{{ alert.message }}</strong><br />
+    Patient: {{ alert.patientName }}<br />
+    Location: {{ alert.latitude | number:'1.4-4' }},
+    {{ alert.longitude | number:'1.4-4' }}
+  </div>
+</div>
 
   <!-- Header -->
   <header class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 z-10">

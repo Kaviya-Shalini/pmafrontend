@@ -3,8 +3,14 @@ import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { Chart, registerables, ChartConfiguration, ChartOptions } from 'chart.js';
 import { RouterModule } from '@angular/router';
-
+import { AlertService } from '../location/alert.service';
 Chart.register(...registerables);
+interface Alert {
+  message: string;
+  patientName: string;
+  latitude: number;
+  longitude: number;
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -26,12 +32,25 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   activeChart: 'bar' | 'line' | 'pie' = 'bar';
   motivationMessage: string = '';
   private charts: Chart[] = [];
-
-  constructor(private http: HttpClient) {}
+  alerts: Alert[] = [];
+  constructor(private http: HttpClient, private alertService: AlertService) {}
 
   ngOnInit(): void {
     this.loadUser();
     this.setMotivationMessage();
+
+    const userId = localStorage.getItem('pma-userId');
+    if (userId) {
+      this.alertService.alerts$.subscribe((alerts) => {
+        if (alerts.length > 0) {
+          this.alerts = alerts;
+          // Auto-clear after 10s
+          this.alertService.clearAlertsAfterDelay(10000);
+        }
+      });
+      // Fetch alerts when dashboard opens
+      this.alertService.fetchAlertsForUser(userId);
+    }
   }
 
   ngAfterViewInit(): void {

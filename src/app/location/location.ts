@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { SafeUrlPipe } from './safe-url.pipe';
 import { ToastrService } from 'ngx-toastr';
-
+import { AlertService } from './alert.service';
 interface Location {
   latitude: number;
   longitude: number;
@@ -39,7 +39,12 @@ export class LocationComponent implements OnInit {
   private periodicCheckSub: Subscription | null = null;
   private readonly awayThresholdKm = 0.2;
 
-  constructor(private http: HttpClient, private ngZone: NgZone, private toastr: ToastrService) {}
+  constructor(
+    private alertService: AlertService,
+    private http: HttpClient,
+    private ngZone: NgZone,
+    private toastr: ToastrService
+  ) {}
 
   ngOnInit(): void {
     const userId = localStorage.getItem('pma-userId');
@@ -79,7 +84,13 @@ export class LocationComponent implements OnInit {
       { enableHighAccuracy: true }
     );
   }
+  triggerDangerAlert() {
+    this.alertService.sendAlert('⚠️ Danger detected! Immediate help needed.');
+  }
 
+  triggerNotifyFamily() {
+    this.alertService.sendAlert('📩 Family notified: Patient may need assistance.');
+  }
   updateMapIframe(lat: number, lng: number): void {
     const delta = 0.0035;
     const bbox = `${lng - delta},${lat - delta},${lng + delta},${lat + delta}`;
@@ -183,18 +194,21 @@ export class LocationComponent implements OnInit {
   }
 
   sendDangerAlert(): void {
-    this.http
-      .post(`http://localhost:8080/api/alerts/danger`, {
-        patientId: this.patientId,
-        latitude: this.currentLocation?.latitude,
-        longitude: this.currentLocation?.longitude,
-        timestamp: new Date().toISOString(),
-        message: 'ALERT: Patient may be lost!',
-      })
-      .subscribe({
-        next: () => this.toastr.success('Danger alert sent to family members!'),
-        error: () => this.toastr.error('Failed to send alert.'),
-      });
+    if (!this.currentLocation) {
+      this.toastr.warning('Current location not available.');
+      return;
+    }
+
+    const alertData = {
+      patientId: this.patientId,
+      latitude: this.currentLocation.latitude,
+      longitude: this.currentLocation.longitude,
+      message: '⚠️ ALERT: Patient may be lost or in danger!',
+      patientName: localStorage.getItem('pma-username'),
+    };
+
+    this.alertService.sendAlert(alertData);
+    this.toastr.success('Danger alert sent to family members!');
   }
 
   formatCoords(lat?: number | null, lng?: number | null): string {

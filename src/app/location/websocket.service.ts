@@ -13,21 +13,42 @@ export class WebsocketService {
   constructor() {}
 
   public connect() {
+    // Prevent multiple connection attempts
+    if (this.stompClient?.connected) {
+      return;
+    }
+
     const socket = new SockJS('http://localhost:8080/ws');
     this.stompClient = Stomp.over(socket);
 
-    this.stompClient.connect({}, (frame: any) => {
-      console.log('Connected: ' + frame);
+    // Disable debug messages in production
+    this.stompClient.debug = () => {};
+
+    const connectCallback = (frame: any) => {
+      console.log('WebSocket Connected: ' + frame);
       this.stompClient.subscribe('/topic/alerts', (message: any) => {
         this.alertMessage.next(JSON.parse(message.body));
       });
-    });
+    };
+
+    // THIS IS THE CRITICAL ADDITION
+    const errorCallback = (error: any) => {
+      console.error('WebSocket connection error:', error);
+      // Optional: attempt to reconnect after a delay
+      setTimeout(() => {
+        console.log('Attempting to reconnect WebSocket...');
+        this.connect();
+      }, 5000); // Retry every 5 seconds
+    };
+
+    this.stompClient.connect({}, connectCallback, errorCallback);
   }
 
   public disconnect() {
-    if (this.stompClient !== null) {
-      this.stompClient.disconnect();
+    if (this.stompClient !== null && this.stompClient.connected) {
+      this.stompClient.disconnect(() => {
+        console.log('WebSocket Disconnected');
+      });
     }
-    console.log('Disconnected');
   }
 }
