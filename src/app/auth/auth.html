@@ -1,77 +1,66 @@
 <div class="min-h-screen flex flex-col justify-center items-center
-            bg-gradient-to-tr from-indigo-950 via-purple-900 to-pink-800
-            text-white text-center p-6 overflow-hidden relative">
+           bg-gradient-to-tr from-indigo-950 via-purple-900 to-pink-800
+           text-white text-center p-6 overflow-hidden relative">
 
+  <!-- Background decorations -->
   <div class="absolute top-20 left-10 w-96 h-96 bg-pink-500 opacity-30 blur-[160px] animate-pulse-slow"></div>
   <div class="absolute bottom-20 right-10 w-96 h-96 bg-yellow-400 opacity-20 blur-[180px] animate-pulse-slow"></div>
 
   <div class="relative z-10 flex flex-col items-center justify-center w-full max-w-md
-              bg-gradient-to-br from-white/5 via-white/10 to-white/5 backdrop-blur-3xl
-              p-10 md:p-12 rounded-3xl shadow-2xl transform transition-all duration-700 hover:scale-105 hover:shadow-3xl">
+             bg-gradient-to-br from-white/5 via-white/10 to-white/5 backdrop-blur-3xl
+             p-10 md:p-12 rounded-3xl shadow-2xl transition-all duration-700 hover:scale-105 hover:shadow-3xl">
 
     <h1 class="text-5xl font-extrabold mb-6 text-center
-               bg-clip-text text-transparent bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400
-               leading-snug">
+             bg-clip-text text-transparent bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400
+             leading-snug">
       {{ isLogin ? (useFaceLogin ? 'Face Login' : 'Login') : 'Create Account' }}
     </h1>
     <p class="text-white/70 text-center mb-8 text-sm md:text-base">
-      {{ isLogin ? (useFaceLogin ? 'Position your face in the camera view and click login.' : 'Welcome back! Please enter your credentials to continue.')
+      {{ isLogin ? (useFaceLogin ? 'Enter username, position your face, and click login.' : 'Welcome back! Please enter your credentials.')
                  : 'Join us today! Create your account to start managing memories.' }}
     </p>
-    <p *ngIf="successMessage" class="mb-2 text-green-400 font-semibold">
+
+    <!-- Success and Error Messages -->
+    <p *ngIf="successMessage" class="mb-4 text-green-400 font-semibold">
       {{ successMessage }}
     </p>
-
-    <p *ngIf="errorMessage" class="mb-2 text-red-400 font-semibold">
+    <p *ngIf="errorMessage" class="mb-4 text-red-400 font-semibold">
       {{ errorMessage }}
     </p>
 
-    <div *ngIf="isLogin && useFaceLogin" class="w-full flex flex-col items-center">
-        <video #videoElement autoplay class="rounded-lg w-full mb-4"></video>
-        <div *ngIf="isLogin && useFaceLogin" class="w-full flex flex-col items-center">
-  <video #videoElement autoplay class="rounded-lg w-full mb-4"></video>
+    <!-- Main Form for both Login and Registration -->
+    <form #authForm="ngForm" (ngSubmit)="submit()" class="flex flex-col gap-5 w-full">
 
-  <!-- FULL-WIDTH BUTTON -->
-  <button
-    (click)="captureAndLogin()"
-    [disabled]="loading"
-    class="w-full mt-4 py-3 rounded-3xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500
-               text-white font-bold shadow-lg hover:scale-105 hover:shadow-2xl
-               transition-all duration-300 flex items-center justify-center gap-2">
-    <svg *ngIf="loading" class="w-10 h-5 animate-spin text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-    </svg>
-    Login with Face
-  </button>
+      <!-- Username Input (visible in all modes except face registration prompt) -->
+      <div *ngIf="!showFaceRegistrationPrompt" class="input-group">
+        <input type="text" name="username" placeholder="Username" required
+               [(ngModel)]="formModel.username"
+               class="px-5 py-3 rounded-3xl bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-indigo-600/30
+                      placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-pink-400
+                      focus:ring-opacity-60 transition shadow-inner w-full"/>
+      </div>
 
-  <button
-    (click)="toggleFaceLogin()"
-    class="underline font-semibold hover:text-pink-400 transition mt-4">
-    Use Password Instead
-  </button>
-</div>
+      <!-- Password Input (visible only in standard login/register) -->
+      <div *ngIf="!useFaceLogin && !showFaceRegistrationPrompt" class="input-group">
+        <input type="password" name="password" placeholder="Password" required
+               [(ngModel)]="formModel.password"
+               class="px-5 py-3 rounded-3xl bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-indigo-600/30
+                      placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-purple-400
+                      focus:ring-opacity-60 transition shadow-inner w-full"/>
+      </div>
 
-    </div>
+      <!-- Alzheimer Patient Checkbox (for registration only) -->
+      <div *ngIf="!isLogin && !showFaceRegistrationPrompt" class="flex items-center justify-center gap-2 text-white/80">
+        <input type="checkbox" id="isAlzheimer" name="isAlzheimer" [(ngModel)]="formModel.isAlzheimer" class="h-4 w-4 rounded text-pink-500 focus:ring-pink-400">
+        <label for="isAlzheimer">Are you an Alzheimer's patient?</label>
+      </div>
 
-
-    <form *ngIf="!useFaceLogin" #form="ngForm" (ngSubmit)="submit(form.value)" class="flex flex-col gap-5 w-full">
-
-      <input type="text" name="username" ngModel placeholder="Username" required
-             class="px-5 py-3 rounded-3xl bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-indigo-600/30
-              placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-pink-400
-              focus:ring-opacity-60 transition shadow-inner"/>
-
-
-      <input type="password" name="password" ngModel placeholder="Password" required
-             class="px-5 py-3 rounded-3xl bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-indigo-600/30
-                    placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-purple-400
-                    focus:ring-opacity-60 transition shadow-inner"/>
-
-      <button type="submit"
-              [disabled]="loading"
+      <!-- Standard Submit Button -->
+      <button *ngIf="!useFaceLogin && !showFaceRegistrationPrompt" type="submit"
+              [disabled]="loading || authForm.invalid"
               class="mt-4 py-3 rounded-3xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500
-                     text-white font-bold shadow-lg hover:scale-105 hover:shadow-2xl transition-all duration-300 flex items-center justify-center gap-2">
+                     text-white font-bold shadow-lg hover:scale-105 hover:shadow-2xl transition-all duration-300
+                     flex items-center justify-center gap-2 disabled:opacity-50">
         <svg *ngIf="loading" class="w-5 h-5 animate-spin text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -80,23 +69,47 @@
       </button>
     </form>
 
-    <p class="mt-6 text-white/70 text-center text-sm md:text-base">
-        <span *ngIf="!useFaceLogin">
-            {{ isLogin ? "Don't have an account?" : "Already have an account?" }}
-            <button (click)="toggleMode()" class="underline font-semibold hover:text-pink-400 transition ml-1">
-                {{ isLogin ? 'Create one' : 'Login here' }}
-            </button>
-        </span>
-        <button *ngIf="isLogin && !useFaceLogin" (click)="toggleFaceLogin()" class="underline font-semibold hover:text-pink-400 transition ml-1">
+    <!-- Face Login Section -->
+    <div *ngIf="isLogin && useFaceLogin && !showFaceRegistrationPrompt" class="w-full flex flex-col items-center">
+        <video #videoElement autoplay class="rounded-lg w-full mb-4"></video>
+        <button (click)="captureAndLogin()" [disabled]="loading"
+                class="w-full mt-2 py-3 rounded-3xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500
+                       text-white font-bold shadow-lg hover:scale-105 hover:shadow-2xl
+                       transition-all duration-300 flex items-center justify-center gap-2">
+          <svg *ngIf="loading" class="w-5 h-5 animate-spin text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          Login with Face
+        </button>
+    </div>
+
+    <!-- Toggle Links -->
+    <div class="mt-6 text-white/70 text-center text-sm md:text-base">
+      <div *ngIf="isLogin && !showFaceRegistrationPrompt">
+        <button *ngIf="!useFaceLogin" (click)="toggleFaceLogin()" class="underline font-semibold hover:text-pink-400 transition">
           Or Login with Face
         </button>
-    </p>
+        <button *ngIf="useFaceLogin" (click)="toggleFaceLogin()" class="underline font-semibold hover:text-pink-400 transition">
+          Use Password Instead
+        </button>
+      </div>
+      <p class="mt-2">
+        {{ isLogin ? "Don't have an account?" : "Already have an account?" }}
+        <button (click)="toggleMode()" class="underline font-semibold hover:text-pink-400 transition ml-1">
+          {{ isLogin ? 'Create one' : 'Login here' }}
+        </button>
+      </p>
+    </div>
 
-    <div *ngIf="showFaceRegistrationPrompt" class="mt-6 text-center">
-        <p>Would you like to register your face for easier login?</p>
-        <video #videoElement autoplay class="rounded-lg w-full my-4"></video>
-        <button (click)="captureAndRegisterFace()" class="mt-2 py-2 px-4 rounded-3xl bg-green-500 text-white font-bold">Register Face</button>
-        <button (click)="skipFaceRegistration()" class="mt-2 py-2 px-4 rounded-3xl bg-gray-500 text-white font-bold">Skip</button>
+    <!-- Face Registration Prompt -->
+    <div *ngIf="showFaceRegistrationPrompt" class="w-full mt-6 text-center">
+      <p class="mb-4">Would you like to register your face for easier login?</p>
+      <video #videoElement autoplay class="rounded-lg w-full my-4"></video>
+      <div class="flex gap-4 justify-center">
+         <button (click)="captureAndRegisterFace()" class="py-2 px-6 rounded-3xl bg-green-500 text-white font-bold hover:bg-green-600 transition">Yes, Register Face</button>
+         <button (click)="skipFaceRegistration()" class="py-2 px-6 rounded-3xl bg-gray-500 text-white font-bold hover:bg-gray-600 transition">Skip for now</button>
+      </div>
     </div>
 
   </div>

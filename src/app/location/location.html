@@ -21,6 +21,7 @@
     </div>
   </div>
 
+
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 z-10">
     <div class="lg:col-span-2 bg-white/6 rounded-2xl p-4 shadow-2xl backdrop-blur-md border border-white/8 overflow-hidden">
       <div class="flex justify-between items-start mb-3">
@@ -53,8 +54,8 @@
           <p class="text-xs opacity-80">Permanent: {{ formatCoords(permanentLocation.latitude, permanentLocation.longitude) }}</p>
         </div>
         <div class="flex gap-2">
-          <button class="px-3 py-1 rounded-full bg-yellow-400 text-indigo-950" (click)="getDirections()">Get Directions</button>
-          <button class="px-3 py-1 rounded-full bg-white/6" (click)="sendDangerAlert()">Notify Family</button>
+          <button class="px-3 py-1 rounded-full bg-yellow-400 text-indigo-950 hover:scale-105" (click)="getDirections()">Get Directions</button>
+          <button class="px-3 py-1 rounded-full bg-white/6 hover:scale-105" (click)="sendDangerAlert()">Notify Family</button>
         </div>
       </div>
     </div>
@@ -67,8 +68,8 @@
         <p class="mt-3 text-sm">Address: <span class="font-medium">{{ permanentLocation.address || '—' }}</span></p>
         <p class="mt-2 text-sm">Coordinates: <span class="font-medium">{{ formatCoords(permanentLocation.latitude, permanentLocation.longitude) }}</span></p>
         <div class="mt-4 flex gap-3">
-          <button class="px-4 py-2 rounded-full bg-yellow-400 text-indigo-950 font-semibold" (click)="startEditPermanent()">Edit</button>
-          <button class="px-4 py-2 rounded-full bg-white/8" (click)="showPermanentOnMap()">Center on Map</button>
+          <button class="px-4 py-2 rounded-full bg-yellow-400 text-indigo-950 font-semibold hover:scale-105" (click)="startEditPermanent()">Edit</button>
+          <button class="px-4 py-2 rounded-full bg-white/8 hover:scale-105" (click)="showPermanentOnMap()">Center on Map</button>
         </div>
       </div>
       <ng-template #noPerm>

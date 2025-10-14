@@ -33,9 +33,11 @@ export class AppLayoutComponent {
   }
 
   logout() {
-    // Clear all user-specific data from localStorage
+    // Clear all user-related local storage
     localStorage.removeItem('pma-userId');
+    localStorage.removeItem('pma-username');
     localStorage.removeItem('pma-quickQuestionAnswered');
+    localStorage.removeItem('user');
 
     // Redirect to the authentication page
     this.router.navigate(['/auth']);

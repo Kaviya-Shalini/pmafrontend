@@ -2,7 +2,8 @@ import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@ang
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { HttpClientModule } from '@angular/common/http';
+import { AuthService } from './auth.service'; // Correctly import the service
 
 @Component({
   selector: 'app-auth',
@@ -20,9 +21,12 @@ export class AuthComponent implements AfterViewInit, OnDestroy {
   showFaceRegistrationPrompt = false;
   registeredUserId = '';
 
+  // A model to bind to the form inputs for both login and registration
+  formModel: any = { username: '', password: '', isAlzheimer: false };
+
   @ViewChild('videoElement') videoElement: ElementRef | undefined;
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private authService: AuthService, private router: Router) {}
 
   ngAfterViewInit() {
     if (this.isLogin && this.useFaceLogin) {
@@ -30,7 +34,6 @@ export class AuthComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  // **ADD OnDestroy LIFECYCLE HOOK**
   ngOnDestroy() {
     this.stopCamera();
   }
@@ -41,6 +44,7 @@ export class AuthComponent implements AfterViewInit, OnDestroy {
     this.errorMessage = '';
     this.useFaceLogin = false;
     this.stopCamera();
+    this.formModel = { username: '', password: '', isAlzheimer: false }; // Reset form
   }
 
   toggleFaceLogin() {
@@ -74,77 +78,59 @@ export class AuthComponent implements AfterViewInit, OnDestroy {
       this.videoElement.nativeElement.srcObject = null;
     }
   }
+
   logout() {
-    // Clear all user-related local storage
-    localStorage.removeItem('pma-userId');
-    localStorage.removeItem('pma-username');
-    localStorage.removeItem('pma-quickQuestionAnswered');
-    localStorage.removeItem('user');
-
-    // Stop camera if active
+    this.authService.logout();
     this.stopCamera();
-
-    // Reset component state
-    this.isLogin = true;
-    this.successMessage = '';
-    this.errorMessage = '';
-    this.useFaceLogin = false;
-
-    // Redirect to login page
-    this.router.navigate(['/login']);
+    this.formModel = { username: '', password: '' }; // Reset the form model on logout
   }
 
   captureAndLogin() {
+    // Check for username before proceeding
+    if (!this.formModel.username) {
+      this.errorMessage = 'Please enter your username before using face login.';
+      return;
+    }
+    this.errorMessage = ''; // Clear previous error
+
     this.capture().then((blob) => {
       const formData = new FormData();
       formData.append('face', blob, 'face.jpg');
+      // Send the username along with the face data
+      formData.append('username', this.formModel.username);
 
       this.loading = true;
-      this.http
-        .post<{
-          success: boolean;
-          message: string;
-          userId?: string;
-          quickQuestionAnswered?: boolean;
-        }>('http://localhost:8080/api/login-face', formData)
-        .subscribe({
-          next: (res) => {
-            this.loading = false;
-            if (res.success && res.userId) {
-              localStorage.setItem('pma-userId', res.userId);
-              localStorage.setItem('pma-quickQuestionAnswered', String(res.quickQuestionAnswered));
-              this.successMessage = 'Login successful!';
-              // **STOP CAMERA ON SUCCESS**
-              this.stopCamera();
-              setTimeout(() => this.router.navigate(['/dashboard']), 1000);
-            } else {
-              this.errorMessage = res.message || 'Face not recognized.';
-            }
-          },
-          error: (err) => {
-            this.loading = false;
-            this.errorMessage = err.error?.message || 'Server error during face login.';
-          },
-        });
+      this.authService.loginWithFace(formData).subscribe({
+        next: (res) => {
+          this.loading = false;
+          if (res.success) {
+            this.successMessage = 'Login successful!';
+            this.stopCamera();
+            setTimeout(() => this.router.navigate(['/dashboard']), 1000);
+          } else {
+            this.errorMessage = res.message || 'Face not recognized or does not match username.';
+          }
+        },
+        error: (err) => {
+          this.loading = false;
+          this.errorMessage = err.error?.message || 'Server error during face login.';
+        },
+      });
     });
   }
 
   captureAndRegisterFace() {
     this.capture().then((blob) => {
-      // ✅ Create form data
       const formData = new FormData();
-
-      // ✅ Add userId and face image to the form data
       formData.append('userId', this.registeredUserId);
       formData.append('face', blob, 'face.jpg');
 
-      // ✅ Send form data to backend
-      this.http.post('http://localhost:8080/api/register-face', formData).subscribe({
+      this.authService.registerFace(formData).subscribe({
         next: () => {
           this.successMessage = 'Face registered successfully!';
           this.showFaceRegistrationPrompt = false;
           this.stopCamera();
-          setTimeout(() => this.toggleMode(), 1500); // Switch to login mode
+          setTimeout(() => this.toggleMode(), 1500);
         },
         error: () => {
           this.errorMessage = 'Failed to register face.';
@@ -156,7 +142,7 @@ export class AuthComponent implements AfterViewInit, OnDestroy {
   skipFaceRegistration() {
     this.showFaceRegistrationPrompt = false;
     this.stopCamera();
-    this.toggleMode(); // Switch to login
+    this.toggleMode();
   }
 
   private capture(): Promise<Blob> {
@@ -184,67 +170,48 @@ export class AuthComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  submit(formValue: any) {
+  submit() {
     this.loading = true;
     this.successMessage = '';
     this.errorMessage = '';
 
     if (this.isLogin) {
-      // Expect userId in the response
-      this.http
-        .post<{
-          success: boolean;
-          message: string;
-          userId?: string;
-          quickQuestionAnswered?: boolean;
-        }>('http://localhost:8080/api/login', formValue)
-        .subscribe({
-          next: (res) => {
-            this.loading = false;
-            if (res.success && res.userId) {
-              localStorage.setItem('pma-userId', res.userId);
-              localStorage.setItem('pma-username', formValue.username); // <-- ADD THIS LINE
-              localStorage.setItem('pma-quickQuestionAnswered', String(res.quickQuestionAnswered));
-              this.successMessage = 'Login successful!';
-              localStorage.setItem('user', JSON.stringify(res.userId));
-              // **STOP CAMERA ON SUCCESS**
-              this.stopCamera();
-              setTimeout(() => this.router.navigate(['/dashboard']), 1000);
-            } else {
-              this.errorMessage = res.message || 'Invalid credentials.';
-            }
-          },
-          error: (err) => {
-            this.loading = false;
-            this.errorMessage = err.error?.message || 'Server error. Try again later.';
-          },
-        });
+      // Use the formModel for login
+      this.authService.login(this.formModel.username, this.formModel.password).subscribe({
+        next: (res) => {
+          this.loading = false;
+          if (res.success) {
+            this.successMessage = 'Login successful!';
+            this.stopCamera();
+            setTimeout(() => this.router.navigate(['/dashboard']), 1000);
+          } else {
+            this.errorMessage = res.message || 'Invalid credentials.';
+          }
+        },
+        error: (err) => {
+          this.loading = false;
+          this.errorMessage = err.error?.message || 'Server error. Try again later.';
+        },
+      });
     } else {
-      // Expect userId in the response
-      this.http
-        .post<{
-          success: boolean;
-          message: string;
-          userId?: string;
-          quickQuestionAnswered?: boolean;
-        }>('http://localhost:8080/api/register', formValue)
-        .subscribe({
-          next: (res) => {
-            this.loading = false;
-            if (res.success && res.userId) {
-              this.successMessage = res.message || 'Account created successfully!';
-              this.registeredUserId = res.userId;
-              this.showFaceRegistrationPrompt = true;
-              setTimeout(() => this.startCamera(), 0);
-            } else {
-              this.errorMessage = res.message || 'Failed to create account.';
-            }
-          },
-          error: (err) => {
-            this.loading = false;
-            this.errorMessage = err.error?.message || 'Server error. Try again later.';
-          },
-        });
+      // Use the formModel for registration
+      this.authService.register(this.formModel).subscribe({
+        next: (res) => {
+          this.loading = false;
+          if (res.success && res.userId) {
+            this.successMessage = res.message || 'Account created successfully!';
+            this.registeredUserId = res.userId;
+            this.showFaceRegistrationPrompt = true;
+            setTimeout(() => this.startCamera(), 0);
+          } else {
+            this.errorMessage = res.message || 'Failed to create account.';
+          }
+        },
+        error: (err) => {
+          this.loading = false;
+          this.errorMessage = err.error?.message || 'Server error. Try again later.';
+        },
+      });
     }
   }
 }
