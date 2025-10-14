@@ -20,12 +20,12 @@ export class AlertService {
   // Called from Dashboard (family)
   fetchAlertsForUser(userId: string) {
     this.http.get<any[]>(`http://localhost:8080/api/alerts/${userId}`).subscribe({
-      next: (alerts) => this.alertsSubject.next(alerts),
+      next: (alerts) => {
+        if (alerts && alerts.length > 0) {
+          this.alertsSubject.next(alerts);
+        }
+      },
       error: (err) => console.error('Failed to fetch alerts:', err),
     });
-  }
-
-  clearAlertsAfterDelay(delayMs = 10000) {
-    setTimeout(() => this.alertsSubject.next([]), delayMs);
   }
 }

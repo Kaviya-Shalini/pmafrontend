@@ -4,6 +4,7 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { Chart, registerables, ChartConfiguration, ChartOptions } from 'chart.js';
 import { RouterModule } from '@angular/router';
 import { AlertService } from '../location/alert.service';
+import { Subscription, interval } from 'rxjs';
 Chart.register(...registerables);
 interface Alert {
   message: string;
@@ -33,6 +34,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   motivationMessage: string = '';
   private charts: Chart[] = [];
   alerts: Alert[] = [];
+  private alertSubscription!: Subscription;
+  private pollingSubscription!: Subscription;
   constructor(private http: HttpClient, private alertService: AlertService) {}
 
   ngOnInit(): void {
@@ -41,15 +44,30 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const userId = localStorage.getItem('pma-userId');
     if (userId) {
-      this.alertService.alerts$.subscribe((alerts) => {
-        if (alerts.length > 0) {
-          this.alerts = alerts;
-          // Auto-clear after 10s
-          this.alertService.clearAlertsAfterDelay(10000);
+      // Subscribe to new alerts
+      this.alertSubscription = this.alertService.alerts$.subscribe((newAlerts) => {
+        if (newAlerts && newAlerts.length > 0) {
+          this.alerts.push(...newAlerts);
+          // Set a timer to clear alerts after 10 seconds.
+          setTimeout(() => {
+            this.alerts = [];
+          }, 30000);
         }
       });
-      // Fetch alerts when dashboard opens
-      this.alertService.fetchAlertsForUser(userId);
+      // Poll for alerts every 5 seconds
+      this.pollingSubscription = interval(5000).subscribe(() => {
+        this.alertService.fetchAlertsForUser(userId);
+      });
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.destroyCharts();
+    if (this.alertSubscription) {
+      this.alertSubscription.unsubscribe();
+    }
+    if (this.pollingSubscription) {
+      this.pollingSubscription.unsubscribe();
     }
   }
 
@@ -402,8 +420,5 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     const positiveCategories = ['family', 'travel', 'friends', 'celebration'];
     const positiveCount = categories.filter((c) => positiveCategories.includes(c)).length;
     return Math.round((positiveCount / this.memories.length) * 100);
-  }
-  ngOnDestroy(): void {
-    this.destroyCharts();
   }
 }

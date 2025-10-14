@@ -15,7 +15,8 @@
   <section class="bg-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-md border border-white/10 mb-6 z-10">
     <div *ngIf="user?.isAlzheimer">
       <h2 class="text-xl font-bold mb-4 text-yellow-300">Connect a Family Member</h2>
-      <form class="flex gap-4 flex-wrap md:flex-nowrap mb-4" [formGroup]="form" (ngSubmit)="addFamilyMember()">
+      <!-- CORRECTED: Changed (ngSubmit) to the correct method name -->
+      <form class="flex gap-4 flex-wrap md:flex-nowrap mb-4" [formGroup]="form" (ngSubmit)="connectFamilyMember()">
         <input formControlName="username" type="text" placeholder="Enter family member's username"
                class="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 placeholder:text-slate-300/60 text-white" />
         <button type="submit" class="px-5 py-3 rounded-xl bg-emerald-400 text-slate-900 font-semibold hover:scale-105 transition">Connect</button>
@@ -25,32 +26,23 @@
     <div *ngIf="familyMembers.length > 0" class="mt-4 pt-4 border-t border-white/10">
         <h3 class="text-lg font-semibold text-green-300 mb-2">Your Connections</h3>
        <div class="flex flex-wrap gap-4">
-  <div *ngFor="let member of familyMembers" class="flex items-center gap-3">
-    <div (click)="selectMemberAndOpenChat(member)"
-         class="px-4 py-2 rounded-xl cursor-pointer flex items-center gap-2 bg-white/5 hover:bg-amber-400 hover:text-slate-900 transition">
-      {{ member.username }}
-      <span *ngIf="member.unread"
-            class="bg-red-500 px-2 py-0.5 rounded-full text-xs font-bold text-white">
-        {{ member.unread }}
-      </span>
-    </div>
-<button *ngIf="user?.isAlzheimer"
-        (click)="disconnectFamilyMember(member)"
-        class="w-9 h-9 flex items-center justify-center
-               rounded-full
-               bg-white/10 backdrop-blur-md
-               border border-white/20
-               
-               hover:bg-rose-500 hover:text-white
-               hover:scale-110 active:scale-95
-               transition-all duration-300 shadow-md shadow-rose-900/30">🗑️
-  <i class="fa-solid fa-trash"></i>
-</button>
-
-
-  </div>
-</div>
-
+          <div *ngFor="let member of familyMembers" class="flex items-center gap-3">
+            <div (click)="selectMemberAndOpenChat(member)"
+                 class="px-4 py-2 rounded-xl cursor-pointer flex items-center gap-2 bg-white/5 hover:bg-amber-400 hover:text-slate-900 transition">
+              {{ member.username }}
+              <span *ngIf="member.unread"
+                    class="bg-red-500 px-2 py-0.5 rounded-full text-xs font-bold text-white">
+                {{ member.unread }}
+              </span>
+            </div>
+            <!-- CORRECTED: Changed click handler to start the disconnect flow -->
+            <button *ngIf="user?.isAlzheimer"
+                    (click)="startDisconnect(member)"
+                    class="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-rose-500 hover:text-white hover:scale-110 active:scale-95 transition-all duration-300 shadow-md shadow-rose-900/30">
+              🗑️
+            </button>
+          </div>
+        </div>
         <div *ngIf="!user?.isAlzheimer" class="mt-2 text-sm text-gray-400">
             Click on a patient's name to view their memories and chat.
         </div>
@@ -59,6 +51,7 @@
     <p *ngIf="familyMembers.length === 0 && !user?.isAlzheimer" class="text-sm text-gray-400">No patients have connected with you yet.</p>
   </section>
 
+  <!-- Chat Panel Modal -->
   <div *ngIf="showChatPanel" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
     <div class="bg-white/10 w-full max-w-3xl rounded-3xl p-6 shadow-2xl backdrop-blur-md border border-white/10 flex flex-col gap-4 relative">
       <button (click)="toggleChatPanel()" class="absolute top-4 right-4 px-3 py-1 bg-red-500 text-white rounded-full hover:scale-105 transition">Close</button>
@@ -82,6 +75,7 @@
     </div>
   </div>
 
+  <!-- Memories Section -->
   <section *ngIf="(user?.isAlzheimer) || (!user?.isAlzheimer && selectedMember)" class="bg-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-md border border-white/10 mb-8 z-10">
     <h2 class="text-xl font-bold mb-4 text-yellow-300">
         {{ user?.isAlzheimer ? 'Your Memories' : 'Memories of ' + selectedMember?.username }}
@@ -94,7 +88,8 @@
         <div class="flex gap-3 flex-wrap">
           <button *ngIf="memory.filePath" (click)="downloadFile(memory.id)" class="px-3 py-1 bg-emerald-400 text-slate-900 rounded-lg text-sm hover:scale-105 transition">Download File</button>
           <button *ngIf="memory.voicePath" (click)="downloadVoice(memory.id)" class="px-3 py-1 bg-indigo-400 text-white rounded-lg text-sm hover:scale-105 transition">Play Voice</button>
-          <button *ngIf="user?.isAlzheimer" (click)="confirmDelete(memory.id)" class="px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:scale-105 transition">Delete</button>
+          <!-- CORRECTED: Changed click handler to start the delete flow -->
+          <button *ngIf="user?.isAlzheimer" (click)="startDelete(memory.id)" class="px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:scale-105 transition">Delete</button>
         </div>
         <p class="text-[10px] text-slate-400 mt-2">Created At: {{ memory.createdAt | date:'short' }}</p>
       </div>
@@ -102,12 +97,26 @@
     </div>
   </section>
 
-  <div *ngIf="showConfirmDialog" class="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+  <!-- Delete Memory Confirmation -->
+  <!-- CORRECTED: Changed *ngIf to the correct property name -->
+  <div *ngIf="showDeleteConfirmDialog" class="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
     <div class="bg-gradient-to-br from-indigo-950 via-purple-900 to-pink-900 text-white p-6 rounded-2xl w-96 shadow-lg border border-white/10 text-center">
       <h2 class="text-xl font-semibold mb-5 text-pink-400">Are you sure you want to delete this memory?</h2>
       <div class="flex justify-center gap-4">
-        <button (click)="deleteMemory(confirmedMemoryId)" class="px-5 py-2 rounded-xl bg-red-600 font-semibold hover:scale-105 transition-all duration-300">Yes, Delete</button>
+        <!-- CORRECTED: Changed click handler to the correct confirmation method -->
+        <button (click)="confirmDelete()" class="px-5 py-2 rounded-xl bg-red-600 font-semibold hover:scale-105 transition-all duration-300">Yes, Delete</button>
         <button (click)="cancelDelete()" class="px-5 py-2 rounded-xl bg-gray-600 hover:bg-gray-700 font-semibold transition-all duration-300">Cancel</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- ADDED: The missing disconnect confirmation dialog -->
+  <div *ngIf="showDisconnectConfirmDialog" class="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+    <div class="bg-gradient-to-br from-indigo-950 via-purple-900 to-pink-900 text-white p-6 rounded-2xl w-96 shadow-lg border border-white/10 text-center">
+      <h2 class="text-xl font-semibold mb-5 text-pink-400">Are you sure you want to disconnect from {{ memberToDisconnect?.username }}?</h2>
+      <div class="flex justify-center gap-4">
+        <button (click)="confirmDisconnect()" class="px-5 py-2 rounded-xl bg-red-600 font-semibold hover:scale-105 transition-all duration-300">Yes, Disconnect</button>
+        <button (click)="cancelDisconnect()" class="px-5 py-2 rounded-xl bg-gray-600 hover:bg-gray-700 font-semibold transition-all duration-300">Cancel</button>
       </div>
     </div>
   </div>
@@ -118,3 +127,4 @@
     <button (click)="nextPage()" [disabled]="page + 1 >= totalPages" class="px-4 py-2 bg-gray-600 rounded">Next</button>
   </div>
 </div>
+
