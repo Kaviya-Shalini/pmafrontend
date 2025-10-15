@@ -6,6 +6,7 @@ import { CommonModule } from '@angular/common';
 import { SafeUrlPipe } from './safe-url.pipe';
 import { ToastrService } from 'ngx-toastr';
 import { AlertService } from './alert.service';
+
 interface Location {
   latitude: number;
   longitude: number;
@@ -84,13 +85,7 @@ export class LocationComponent implements OnInit {
       { enableHighAccuracy: true }
     );
   }
-  triggerDangerAlert() {
-    this.alertService.sendAlert('⚠️ Danger detected! Immediate help needed.');
-  }
 
-  triggerNotifyFamily() {
-    this.alertService.sendAlert('📩 Family notified: Patient may need assistance.');
-  }
   updateMapIframe(lat: number, lng: number): void {
     const delta = 0.0035;
     const bbox = `${lng - delta},${lat - delta},${lng + delta},${lat + delta}`;
@@ -123,7 +118,7 @@ export class LocationComponent implements OnInit {
   startEditPermanent(): void {
     if (!this.permanentLocation) return;
     this.editing = true;
-    this.showSaveConfirm = true; // Show the same form for editing
+    this.showSaveConfirm = true;
     this.editLat = this.permanentLocation.latitude;
     this.editLng = this.permanentLocation.longitude;
     this.editAddress = this.permanentLocation.address || '';
@@ -193,6 +188,10 @@ export class LocationComponent implements OnInit {
     window.open(url, '_blank');
   }
 
+  /**
+   * Triggers a danger alert.
+   * This now subscribes to the alert service, which is required to send the HTTP request.
+   */
   sendDangerAlert(): void {
     if (!this.currentLocation) {
       this.toastr.warning('Current location not available.');
@@ -207,8 +206,15 @@ export class LocationComponent implements OnInit {
       patientName: localStorage.getItem('pma-username'),
     };
 
-    this.alertService.sendAlert(alertData);
-    this.toastr.success('Danger alert sent to family members!');
+    this.alertService.sendAlert(alertData).subscribe({
+      next: () => {
+        this.toastr.success('Danger alert sent to family members!');
+      },
+      error: (err) => {
+        console.error('Failed to send danger alert:', err);
+        this.toastr.error('Could not send alert. Please try again.');
+      },
+    });
   }
 
   formatCoords(lat?: number | null, lng?: number | null): string {

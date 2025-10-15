@@ -1,11 +1,14 @@
 import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
-import { Chart, registerables, ChartConfiguration, ChartOptions } from 'chart.js';
+import { Chart, registerables, ChartOptions } from 'chart.js';
 import { RouterModule } from '@angular/router';
 import { AlertService } from '../location/alert.service';
 import { Subscription, interval } from 'rxjs';
+
 Chart.register(...registerables);
+
+// Interface for the alert data structure
 interface Alert {
   message: string;
   patientName: string;
@@ -25,17 +28,17 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('barChart') barChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('lineChart') lineChartRef!: ElementRef<HTMLCanvasElement>;
 
+  // Component state properties
   memories: any[] = [];
   recentMemories: any[] = [];
   user: any = null;
   today: Date = new Date();
-  reminders: any[] = [];
   activeChart: 'bar' | 'line' | 'pie' = 'bar';
   motivationMessage: string = '';
   private charts: Chart[] = [];
   alerts: Alert[] = [];
-  private alertSubscription!: Subscription;
   private pollingSubscription!: Subscription;
+
   constructor(private http: HttpClient, private alertService: AlertService) {}
 
   ngOnInit(): void {
@@ -44,36 +47,37 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const userId = localStorage.getItem('pma-userId');
     if (userId) {
-      // Subscribe to new alerts
-      this.alertSubscription = this.alertService.alerts$.subscribe((newAlerts) => {
-        if (newAlerts && newAlerts.length > 0) {
-          this.alerts.push(...newAlerts);
-          // Set a timer to clear alerts after 10 seconds.
-          setTimeout(() => {
-            this.alerts = [];
-          }, 30000);
-        }
-      });
-      // Poll for alerts every 5 seconds
-      this.pollingSubscription = interval(5000).subscribe(() => {
-        this.alertService.fetchAlertsForUser(userId);
+      // Start polling for alerts every 5 seconds.
+      // The logic is now entirely self-contained within this component.
+      this.pollingSubscription = interval(1000).subscribe(() => {
+        this.alertService.fetchAlertsForUser(userId).subscribe((newAlerts) => {
+          if (newAlerts && newAlerts.length > 0) {
+            // Add the new alerts to this component's local `alerts` array.
+            this.alerts.push(...newAlerts);
+            // Set a timer to clear the alerts from this dashboard after 30 seconds.
+            setTimeout(() => {
+              this.alerts = [];
+            }, 30000);
+          }
+        });
       });
     }
   }
 
   ngOnDestroy(): void {
     this.destroyCharts();
-    if (this.alertSubscription) {
-      this.alertSubscription.unsubscribe();
-    }
+    // Clean up the subscription when the component is destroyed to prevent memory leaks.
     if (this.pollingSubscription) {
       this.pollingSubscription.unsubscribe();
     }
   }
 
   ngAfterViewInit(): void {
-    // Charts will be created after data is loaded
+    // Charts are created after memory data is loaded.
   }
+
+  // --- Data Loading and UI Methods ---
+
   getTodayDate(): string {
     const options: Intl.DateTimeFormatOptions = {
       weekday: 'long',
@@ -92,9 +96,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       '💪 Believe in yourself, you’ve got this!',
       '🌈 Every memory matters—cherish today!',
     ];
-    // Pick a random motivational message and assign it to the property
     this.motivationMessage = messages[Math.floor(Math.random() * messages.length)];
   }
+
   loadUser() {
     const userId = localStorage.getItem('pma-userId');
     if (userId) {
@@ -109,40 +113,18 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.http
       .get<any[]>(`http://localhost:8080/api/memories/recent/${userId}`)
       .subscribe((res: any[]) => {
-        // Ensure all date strings are valid Date objects
         this.memories = res.map((m) => ({ ...m, createdAt: new Date(m.createdAt) }));
         this.recentMemories = this.memories
-          .sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime())
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
           .slice(0, 5);
-
-        // We need to make sure the view is initialized before creating charts
         setTimeout(() => this.createCharts(), 0);
       });
   }
 
+  // --- Chart Logic ---
+
   setActiveChart(chartType: 'bar' | 'line' | 'pie') {
     this.activeChart = chartType;
-  }
-
-  getCategories(): string[] {
-    if (!this.memories || this.memories.length === 0) return [];
-    const categories = this.memories.map((m) =>
-      m.category === 'other' && m.customCategory ? m.customCategory : m.category
-    );
-    return Array.from(new Set(categories.filter((c) => c)));
-  }
-
-  getMostActiveDay(): string {
-    if (!this.memories.length) return 'N/A';
-    const dayCounts: Record<string, number> = {};
-    this.memories.forEach((m) => {
-      if (m.createdAt && !isNaN(m.createdAt.getTime())) {
-        const day = m.createdAt.toLocaleDateString('en-US', { weekday: 'long' });
-        dayCounts[day] = (dayCounts[day] || 0) + 1;
-      }
-    });
-    if (Object.keys(dayCounts).length === 0) return 'N/A';
-    return Object.entries(dayCounts).sort((a, b) => b[1] - a[1])[0][0];
   }
 
   getTopCategory(): string {
@@ -150,9 +132,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     const counts: Record<string, number> = {};
     this.memories.forEach((m) => {
       const cat = m.category === 'other' && m.customCategory ? m.customCategory : m.category;
-      if (cat) {
-        counts[cat] = (counts[cat] || 0) + 1;
-      }
+      if (cat) counts[cat] = (counts[cat] || 0) + 1;
     });
     if (Object.keys(counts).length === 0) return 'N/A';
     return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
@@ -170,34 +150,6 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.charts = [];
   }
 
-  private getChartOptions(title: string): ChartOptions {
-    return {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { color: '#9ca3af' },
-        },
-        title: {
-          display: false,
-          text: title,
-          color: '#e5e7eb',
-        },
-      },
-      scales: {
-        x: {
-          ticks: { color: '#9ca3af' },
-          grid: { color: 'rgba(255, 255, 255, 0.1)' },
-        },
-        y: {
-          ticks: { color: '#9ca3af' },
-          grid: { color: 'rgba(255, 255, 255, 0.1)' },
-        },
-      },
-    };
-  }
-
   createPieChart() {
     const ctx = this.pieChartRef?.nativeElement?.getContext('2d');
     if (!ctx) return;
@@ -208,28 +160,6 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       if (cat) categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
     });
 
-    if (this.charts.find((c) => c.canvas === this.pieChartRef.nativeElement)) {
-      this.destroyCharts();
-    }
-
-    const gradientColors = [
-      ctx.createLinearGradient(0, 0, 150, 150),
-      ctx.createLinearGradient(0, 0, 150, 150),
-      ctx.createLinearGradient(0, 0, 150, 150),
-      ctx.createLinearGradient(0, 0, 150, 150),
-      ctx.createLinearGradient(0, 0, 150, 150),
-    ];
-    gradientColors[0].addColorStop(0, '#818cf8');
-    gradientColors[0].addColorStop(1, '#4f46e5');
-    gradientColors[1].addColorStop(0, '#a855f7');
-    gradientColors[1].addColorStop(1, '#7c3aed');
-    gradientColors[2].addColorStop(0, '#ec4899');
-    gradientColors[2].addColorStop(1, '#db2777');
-    gradientColors[3].addColorStop(0, '#facc15');
-    gradientColors[3].addColorStop(1, '#f59e0b');
-    gradientColors[4].addColorStop(0, '#34d399');
-    gradientColors[4].addColorStop(1, '#10b981');
-
     const pieChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
@@ -237,7 +167,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         datasets: [
           {
             data: Object.values(categoryCounts),
-            backgroundColor: gradientColors,
+            backgroundColor: ['#818cf8', '#a855f7', '#ec4899', '#facc15', '#34d399'],
             borderWidth: 2,
             borderColor: 'rgba(255,255,255,0.3)',
             hoverOffset: 15,
@@ -248,25 +178,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         responsive: true,
         cutout: '65%',
         plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { color: '#f9fafb', font: { size: 13 } },
-          },
-          tooltip: {
-            backgroundColor: '#1e1b4b',
-            titleColor: '#fff',
-            bodyColor: '#ddd',
-            borderWidth: 1,
-            borderColor: '#fff',
-          },
-        },
-        animation: {
-          animateRotate: true,
-          animateScale: true,
+          legend: { position: 'bottom', labels: { color: '#f9fafb', font: { size: 13 } } },
         },
       },
     });
-
     this.charts.push(pieChart);
   }
 
@@ -282,60 +197,35 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     });
 
-    const labels = Object.keys(dailyCounts);
-    const data = Object.values(dailyCounts);
-
-    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, 'rgba(99,102,241,0.9)');
-    gradient.addColorStop(1, 'rgba(79,70,229,0.4)');
-
     const barChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels,
+        labels: Object.keys(dailyCounts),
         datasets: [
           {
             label: 'Uploads',
-            data,
-            backgroundColor: gradient,
+            data: Object.values(dailyCounts),
+            backgroundColor: 'rgba(99,102,241,0.9)',
             borderColor: '#6366f1',
             borderWidth: 2,
             borderRadius: 6,
-            hoverBackgroundColor: 'rgba(167,139,250,0.9)',
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#1e1b4b',
-            titleColor: '#fff',
-            bodyColor: '#ddd',
-            borderWidth: 1,
-            borderColor: '#fff',
-          },
-        },
+        plugins: { legend: { display: false } },
         scales: {
-          x: {
-            ticks: { color: '#f9fafb' },
-            grid: { color: 'rgba(255,255,255,0.08)' },
-          },
+          x: { ticks: { color: '#f9fafb' }, grid: { color: 'rgba(255,255,255,0.08)' } },
           y: {
             ticks: { color: '#f9fafb' },
             grid: { color: 'rgba(255,255,255,0.08)' },
             beginAtZero: true,
           },
         },
-        animation: {
-          duration: 1000,
-          easing: 'easeOutQuart',
-        },
       },
     });
-
     this.charts.push(barChart);
   }
 
@@ -354,71 +244,35 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       });
 
-    const labels = Object.keys(trendCounts);
-    const data = Object.values(trendCounts);
-
-    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, 'rgba(236,72,153,0.5)');
-    gradient.addColorStop(1, 'rgba(236,72,153,0)');
-
     const lineChart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels,
+        labels: Object.keys(trendCounts),
         datasets: [
           {
             label: 'Upload Trend',
-            data,
+            data: Object.values(trendCounts),
             borderColor: '#f472b6',
-            backgroundColor: gradient,
-            fill: true,
+            fill: false,
             tension: 0.4,
             borderWidth: 2.5,
-            pointRadius: 4,
-            pointHoverRadius: 7,
-            pointBackgroundColor: '#f9a8d4',
-            pointBorderColor: '#fff',
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#1e1b4b',
-            titleColor: '#fff',
-            bodyColor: '#ddd',
-            borderWidth: 1,
-            borderColor: '#fff',
-          },
-        },
+        plugins: { legend: { display: false } },
         scales: {
-          x: {
-            ticks: { color: '#f9fafb' },
-            grid: { color: 'rgba(255,255,255,0.08)' },
-          },
+          x: { ticks: { color: '#f9fafb' }, grid: { color: 'rgba(255,255,255,0.08)' } },
           y: {
             ticks: { color: '#f9fafb' },
             grid: { color: 'rgba(255,255,255,0.08)' },
             beginAtZero: true,
           },
         },
-        animation: {
-          duration: 1200,
-          easing: 'easeOutCubic',
-        },
       },
     });
-
     this.charts.push(lineChart);
-  }
-  getMoodScore(): number {
-    if (!this.memories.length) return 0;
-    const categories = this.memories.map((m) => m.category);
-    const positiveCategories = ['family', 'travel', 'friends', 'celebration'];
-    const positiveCount = categories.filter((c) => positiveCategories.includes(c)).length;
-    return Math.round((positiveCount / this.memories.length) * 100);
   }
 }
