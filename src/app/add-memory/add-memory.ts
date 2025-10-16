@@ -12,9 +12,9 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
   styleUrls: [],
 })
 export class AddMemoryComponent implements OnInit {
-  askingPatient = true;
+  askingPatient = false;
   isAlzheimer = false;
-  showForm = false;
+  showForm = true;
 
   infoMessage = '';
   loading = false;

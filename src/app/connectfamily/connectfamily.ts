@@ -49,7 +49,7 @@ export class ConnectFamilyComponent implements OnInit, OnDestroy {
 
   // pagination
   page = 0;
-  size = 8;
+  size = 3;
   totalPages = 1;
 
   constructor(private fb: FormBuilder, private http: HttpClient, private toastr: ToastrService) {

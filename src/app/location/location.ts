@@ -1,4 +1,4 @@
-import { Component, OnInit, NgZone } from '@angular/core';
+import { Component, OnInit, NgZone, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { interval, Subscription } from 'rxjs';
 import { FormsModule } from '@angular/forms';
@@ -22,7 +22,7 @@ interface Location {
   imports: [FormsModule, CommonModule, SafeUrlPipe],
   standalone: true,
 })
-export class LocationComponent implements OnInit {
+export class LocationComponent implements OnInit, OnDestroy {
   patientId = '';
   currentLocation: Location | null = null;
   permanentLocation: Location | null = null;
@@ -37,9 +37,7 @@ export class LocationComponent implements OnInit {
   isAway = false;
   message = '';
   private watchId: number | null = null;
-  private periodicCheckSub: Subscription | null = null;
-  private readonly awayThresholdKm = 0.2;
-
+  private periodicCheckSub: Subscription | null = null; // Removed: private readonly awayThresholdKm = 0.2; // This logic is now handled by the backend (50m radius)
   constructor(
     private alertService: AlertService,
     private http: HttpClient,
@@ -51,9 +49,10 @@ export class LocationComponent implements OnInit {
     const userId = localStorage.getItem('pma-userId');
     if (userId) {
       this.patientId = userId;
-      this.loadPermanentLocation();
+      // loadPermanentLocation() is now called AFTER we get the first location fix.
       this.startWatchingPosition();
-      this.periodicCheckSub = interval(8000).subscribe(() => this.checkAwayStatus());
+      // Use the new status check function
+      this.periodicCheckSub = interval(8000).subscribe(() => this.getSafetyStatus());
     } else {
       this.message = 'No user found. Please log in.';
     }
@@ -66,23 +65,39 @@ export class LocationComponent implements OnInit {
 
   startWatchingPosition(): void {
     if (!('geolocation' in navigator)) return;
-    this.loading = true;
+
+    this.loading = true; // We no longer need the firstPositionLoaded flag.
+    // We update the map on every successful watch position.
+
     this.watchId = navigator.geolocation.watchPosition(
       (pos) => {
         this.ngZone.run(() => {
-          this.currentLocation = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+          this.currentLocation = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          };
           this.currentAccuracy = pos.coords.accuracy;
+          this.loading = false; // ✅ Fix 1: Always update the map to current location upon receiving a new position
+
           this.updateMapIframe(this.currentLocation.latitude, this.currentLocation.longitude);
-          this.loading = false;
-          this.checkAwayStatus();
+
+          // ✅ Fix 2: Load permanent location and run initial safety check after the first valid location fix.
+          // We check if permanentLocation is null to avoid unnecessary calls.
+          if (!this.permanentLocation) {
+            this.loadPermanentLocation();
+          } // ✅ Trigger the check immediately after location is updated
+
+          this.getSafetyStatus();
         });
       },
-      () =>
+      (error) => {
         this.ngZone.run(() => {
           this.loading = false;
-          this.message = 'Unable to get location.';
-        }),
-      { enableHighAccuracy: true }
+          this.message = 'Unable to get current location. Please allow permission.';
+          console.error('Geolocation error:', error);
+        });
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
     );
   }
 
@@ -94,10 +109,14 @@ export class LocationComponent implements OnInit {
 
   loadPermanentLocation(): void {
     this.http
-      .get<Location>(`http://localhost:8080/api/patients/${this.patientId}/location`)
+      // Updated API path to match the new controller structure
+      .get<Location>(`http://localhost:8080/api/locations/patients/${this.patientId}/permanent`)
       .subscribe({
         next: (loc) => {
-          if (loc) this.permanentLocation = loc;
+          if (loc) {
+            this.permanentLocation = loc;
+            this.getSafetyStatus(); // Check safety immediately after loading permanent location
+          }
         },
         error: () => this.toastr.info('No permanent location set yet.'),
       });
@@ -133,21 +152,18 @@ export class LocationComponent implements OnInit {
       isPermanent: true,
     };
 
+    const url = `http://localhost:8080/api/locations/patients/${this.patientId}/permanent`;
+
     const request = this.editing
-      ? this.http.put<Location>(
-          `http://localhost:8080/api/patients/${this.patientId}/location`,
-          payload
-        )
-      : this.http.post<Location>(
-          `http://localhost:8080/api/patients/${this.patientId}/location`,
-          payload
-        );
+      ? this.http.put<Location>(url, payload)
+      : this.http.post<Location>(url, payload);
 
     request.subscribe({
       next: (savedLocation) => {
         this.permanentLocation = savedLocation;
         this.editing = false;
         this.showSaveConfirm = false;
+        this.getSafetyStatus(); // Re-check status after saving a new permanent location
         this.toastr.success(`Permanent location ${this.editing ? 'updated' : 'saved'}!`);
       },
       error: () => this.toastr.error('Failed to save location.'),
@@ -159,39 +175,57 @@ export class LocationComponent implements OnInit {
     this.showSaveConfirm = false;
   }
 
-  checkAwayStatus(): void {
-    if (!this.permanentLocation || !this.currentLocation) return;
-    const dist = this.computeDistanceKm(
-      this.currentLocation.latitude,
-      this.currentLocation.longitude,
-      this.permanentLocation.latitude,
-      this.permanentLocation.longitude
-    );
-    this.isAway = dist > this.awayThresholdKm;
-  }
+  /**
+   * NEW: Fetches the definitive safety status from the backend.
+   * This replaces the unreliable client-side distance check.
+   */
+  getSafetyStatus(): void {
+    if (!this.permanentLocation || !this.currentLocation) {
+      // Cannot check status if we don't know both locations
+      this.isAway = false;
+      return;
+    }
 
-  computeDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const toRad = (v: number) => (v * Math.PI) / 180;
-    const R = 6371;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
+    const currentLoc = {
+      patientId: this.patientId,
+      latitude: this.currentLocation.latitude,
+      longitude: this.currentLocation.longitude,
+    };
+
+    // Call the new backend API endpoint
+    this.http
+      .post<boolean>(`http://localhost:8080/api/locations/safety/check`, currentLoc)
+      .subscribe({
+        next: (isSafe: boolean) => {
+          // If the backend says it's SAFE (true), then we are NOT away (isAway = false).
+          this.isAway = !isSafe;
+
+          // Optionally provide a status message
+          this.message = this.isAway
+            ? 'Warning: Away from permanent location.'
+            : 'Status: Safe at permanent location.';
+        },
+        error: (err) => {
+          this.isAway = false; // Default to safe if check fails
+          this.message = 'Error checking safety status.';
+          console.error('Failed to get safety status:', err);
+        },
+      });
+  } // REMOVED: checkAwayStatus() and computeDistanceKm() are no longer needed,
+
+  // as the backend handles the definitive distance calculation.
+  // checkAwayStatus(): void { ... }
+  // computeDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number { ... }
 
   getDirections(): void {
     if (!this.permanentLocation || !this.currentLocation) return;
     const url = `https://www.google.com/maps/dir/?api=1&origin=${this.currentLocation.latitude},${this.currentLocation.longitude}&destination=${this.permanentLocation.latitude},${this.permanentLocation.longitude}&travelmode=walking`;
     window.open(url, '_blank');
   }
-
   /**
    * Triggers a danger alert.
-   * This now subscribes to the alert service, which is required to send the HTTP request.
    */
+
   sendDangerAlert(): void {
     if (!this.currentLocation) {
       this.toastr.warning('Current location not available.');

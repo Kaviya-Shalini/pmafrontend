@@ -47,18 +47,23 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const userId = localStorage.getItem('pma-userId');
     if (userId) {
-      // Start polling for alerts every 5 seconds.
-      // The logic is now entirely self-contained within this component.
+      // Start polling for alerts every 1 second.
       this.pollingSubscription = interval(1000).subscribe(() => {
         this.alertService.fetchAlertsForUser(userId).subscribe((newAlerts) => {
           if (newAlerts && newAlerts.length > 0) {
-            // Add the new alerts to this component's local `alerts` array.
-            this.alerts.push(...newAlerts);
-            // Set a timer to clear the alerts from this dashboard after 30 seconds.
-            setTimeout(() => {
-              this.alerts = [];
-            }, 30000);
+            // If new alerts exist (meaning the persistent alert is active)
+            // Replace the local array with the current active alerts.
+            this.alerts = newAlerts;
+          } else {
+            // If no alerts are returned, the backend has resolved and cleared them.
+            // Clear the local display.
+            this.alerts = [];
           }
+
+          // **THE FOLLOWING INCORRECT LOGIC HAS BEEN REMOVED:**
+          // setTimeout(() => {
+          //   this.alerts = [];
+          // }, 30000);
         });
       });
     }
