@@ -15,6 +15,11 @@ interface Alert {
   latitude: number;
   longitude: number;
 }
+// Interface for the user's current coordinates (family member's location)
+interface Coords {
+  lat: number;
+  lng: number;
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -79,6 +84,67 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     // Charts are created after memory data is loaded.
+  }
+  // --- NEW FUNCTIONALITY: DANGER MAP DIRECTIONS ---
+
+  /**
+   * Prompts the family member's browser for their current location and
+   * opens Google Maps directions to the patient's alert location.
+   * @param patientLat Patient's latitude from the alert.
+   * @param patientLng Patient's longitude from the alert.
+   */
+  getDirectionsToPatient(patientLat: number, patientLng: number): void {
+    if (!('geolocation' in navigator)) {
+      alert('Geolocation is not supported by your browser. Cannot get directions.');
+      return;
+    }
+
+    // Attempt to get the family member's current location (origin)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const origin: Coords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+
+        const destination: Coords = {
+          lat: patientLat,
+          lng: patientLng,
+        };
+
+        this.openGoogleMapsDirections(origin, destination);
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        // Fallback: If family member's location can't be fetched, just show the patient's location
+        // We use a general search/view link in this case.
+        this.openGoogleMapsView(patientLat, patientLng);
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    );
+  }
+
+  /**
+   * Opens Google Maps for directions.
+   * @param origin Family member's location.
+   * @param destination Patient's alert location.
+   */
+  private openGoogleMapsDirections(origin: Coords, destination: Coords): void {
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}&travelmode=driving`;
+    window.open(url, '_blank');
+  }
+
+  /**
+   * Opens Google Maps to view a single location (fallback).
+   * @param lat Latitude to view.
+   * @param lng Longitude to view.
+   */
+  private openGoogleMapsView(lat: number, lng: number): void {
+    const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    window.open(url, '_blank');
+    alert(
+      'Could not get your current location. Showing the patient’s last reported location instead.'
+    );
   }
 
   // --- Data Loading and UI Methods ---

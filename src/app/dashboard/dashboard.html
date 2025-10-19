@@ -7,45 +7,75 @@
   <div class="absolute top-20 left-10 w-[400px] h-[400px] bg-pink-500 opacity-30 blur-[160px] animate-pulse-slow"></div>
   <div class="absolute bottom-20 right-10 w-[400px] h-[400px] bg-indigo-400 opacity-20 blur-[180px] animate-pulse-slow"></div>
 
-  <!-- ✅ FIXED ALERT SECTION -->
-  <div *ngIf="alerts && alerts.length > 0" class="fixed top-6 right-6 z-50 space-y-4">
+ <!-- ✅ FIXED ALERT SECTION -->
+<div *ngIf="alerts && alerts.length > 0" class="fixed top-10 right-6 z-[9999] space-y-4 ">
 
-    <div
-      *ngFor="let alert of alerts"
-      class="relative overflow-hidden w-[340px] md:w-[400px] p-5 rounded-2xl shadow-[0_0_25px_rgba(255,0,70,0.6)] 
-             bg-gradient-to-br from-red-600 via-red-500 to-pink-500 border border-red-400 
-             text-white backdrop-blur-md animate-alert-pop"
-    >
-      <div class="absolute -top-10 -left-10 w-40 h-40 bg-pink-400 opacity-40 blur-[100px]"></div>
-      <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-yellow-400 opacity-30 blur-[90px]"></div>
+  <div
+    *ngFor="let alert of alerts"
+    class="relative overflow-hidden w-[340px] md:w-[400px] p-5 rounded-2xl 
+           shadow-[0_0_25px_rgba(255,0,70,0.6)] 
+           bg-gradient-to-br from-red-600 via-red-500 to-pink-500 
+           border border-red-400 text-white backdrop-blur-md animate-alert-pop group"
+  >
+    <!-- Glowing Background -->
+    <div class="absolute -top-10 -left-10 w-40 h-40 bg-pink-400 opacity-40 blur-[100px] pointer-events-none"></div>
+    <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-yellow-400 opacity-30 blur-[90px] pointer-events-none"></div>
 
-      <div class="flex items-center justify-between relative z-10 mb-2">
-        <div class="flex items-center gap-2">
-          <span class="bg-white/20 p-2 rounded-full animate-pulse shadow-inner shadow-yellow-200">🚨</span>
-          <h3 class="text-lg font-extrabold tracking-wide drop-shadow-lg">EMERGENCY ALERT</h3>
-        </div>
+    <!-- Alert Header -->
+    <div class="flex items-center justify-between relative z-20 mb-3">
+      <div class="flex items-center gap-2">
+        <span class="bg-white/20 p-2 rounded-full animate-pulse shadow-inner shadow-yellow-200">🚨</span>
+        <h3 class="text-lg font-extrabold tracking-wide drop-shadow-lg">EMERGENCY ALERT</h3>
       </div>
 
-      <div class="relative z-10">
-        <p class="text-base font-medium leading-snug tracking-wide italic text-yellow-100 mb-3">
-          "{{ alert.message }}"
-        </p>
-        <div class="flex flex-col gap-1 text-sm text-white/90">
-          <div class="flex items-center gap-2">
-            <span class="text-yellow-300">👤</span>
-            <span><strong>Patient:</strong> {{ alert.patientName }}</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-blue-300">📍</span>
-            <span><strong>Location:</strong> {{ alert.latitude | number:'1.4-4' }}, {{ alert.longitude | number:'1.4-4' }}</span>
-          </div>
-        </div>
-      </div>
+      <!-- ✅ Replaced Navigate Button with Google Maps Icon -->
+      <button
+  (click)="getDirectionsToPatient(alert.latitude, alert.longitude)"
+  class="ml-4 p-2 rounded-full bg-white/25 hover:bg-white/40 
+         text-white shadow-md hover:shadow-lg 
+         transition-all duration-150 z-[10000]"
+  title="Open Google Maps for directions"
+  style="animation: none !important; transform: none !important;">
+  <!-- Google Maps SVG Icon -->
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" 
+       fill="currentColor" class="w-6 h-6 text-yellow-300 drop-shadow">
+    <path d="M12 2C8.14 2 5 5.14 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.86-3.14-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/>
+  </svg>
+</button>
 
-      <div class="absolute inset-0 rounded-2xl border-[3px] border-transparent animate-border-glow pointer-events-none"></div>
-      <div class="absolute bottom-0 left-0 h-[4px] bg-gradient-to-r from-yellow-400 via-pink-500 to-red-600 animate-progress w-full"></div>
     </div>
+
+    <!-- Alert Content -->
+    <div class="relative z-10">
+     <p class="text-base font-medium leading-snug tracking-wide italic text-yellow-100 mb-3 ">
+  "{{ alert.message }}"
+</p>
+
+
+      <div class="flex flex-col gap-1 text-sm text-white/90">
+        <div class="flex items-center gap-2">
+          <span class="text-yellow-300">👤</span>
+          <span><strong>Patient:</strong> {{ alert.patientName }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-blue-300">📍</span>
+          <span><strong>Location:</strong> 
+            {{ alert.latitude | number:'1.4-4' }}, 
+            {{ alert.longitude | number:'1.4-4' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Animated Border -->
+    <div class="absolute inset-0 rounded-2xl border-[3px] border-transparent animate-border-glow pointer-events-none"></div>
+
+    <!-- Progress Bar -->
+    <div class="absolute bottom-0 left-0 h-[4px] bg-gradient-to-r from-yellow-400 via-pink-500 to-red-600 animate-progress w-full"></div>
+
   </div>
+</div>
+
 
   <!-- Header -->
   <header class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 z-10">
