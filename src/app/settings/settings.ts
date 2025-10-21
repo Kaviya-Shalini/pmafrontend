@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-
+import { AuthService } from '../auth/auth.service';
 interface User {
   id?: string;
   username: string;
@@ -24,7 +24,7 @@ export class SettingsComponent implements OnInit {
   toastMessage = '';
   toastVisible = false;
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private http: HttpClient, private router: Router, private authService: AuthService) {}
 
   ngOnInit() {
     this.loadUser();
@@ -47,8 +47,13 @@ export class SettingsComponent implements OnInit {
     this.http.delete(`http://localhost:8080/api/user/${this.user.id}`).subscribe({
       next: () => {
         this.showToast('Account deleted successfully');
+
+        // CALL LOGOUT: Clears session state from local storage and attempts navigation to /auth
+        this.authService.logout();
+
         setTimeout(() => {
-          // Redirect to login or landing page
+          // Redirect to login page as requested. This navigation will override
+          // the one initiated by authService.logout() if they are different.
           this.router.navigate(['/login']);
         }, 1500);
       },
