@@ -33,8 +33,14 @@ export class SettingsComponent implements OnInit {
   loadUser() {
     const userId = localStorage.getItem('pma-userId');
     if (userId) {
+      // Fetch details from API. Note that the API returns the ID as 'userId',
+      // but the frontend interface uses 'id' (which is fine, but can be confusing).
       this.http.get(`http://localhost:8080/api/user/${userId}`).subscribe((res: any) => {
-        this.user = res;
+        // Map 'userId' from response to 'id' property in interface for consistency
+        this.user = {
+          ...res,
+          id: res.userId || userId, // Use userId from localStorage as fallback
+        };
       });
     }
   }
@@ -43,21 +49,34 @@ export class SettingsComponent implements OnInit {
     if (!confirm('Are you sure you want to delete your account? This action cannot be undone.'))
       return;
 
-    if (!this.user?.id) return;
-    this.http.delete(`http://localhost:8080/api/user/${this.user.id}`).subscribe({
+    // 🔥 FIX: Use the ID directly from localStorage as the ultimate source of truth
+    // to prevent the check from failing due to asynchronous timing.
+    const userIdToDelete = this.user?.id || localStorage.getItem('pma-userId');
+
+    if (!userIdToDelete) {
+      this.showToast('Error: User ID not found.');
+      return;
+    }
+
+    // Updated URL based on your latest backend code: /api/user/delete/{userId}
+    this.http.delete(`http://localhost:8080/api/user/delete/${userIdToDelete}`).subscribe({
       next: () => {
         this.showToast('Account deleted successfully');
 
-        // CALL LOGOUT: Clears session state from local storage and attempts navigation to /auth
-        this.authService.logout();
+        // Manual cleanup to ensure immediate logout is the most robust solution.
+        localStorage.removeItem('pma-userId');
+        localStorage.removeItem('pma-username');
+        localStorage.removeItem('pma-quickQuestionAnswered');
+        localStorage.removeItem('user');
 
         setTimeout(() => {
-          // Redirect to login page as requested. This navigation will override
-          // the one initiated by authService.logout() if they are different.
           this.router.navigate(['/login']);
         }, 1500);
       },
-      error: () => this.showToast('Failed to delete account'),
+      error: (err) => {
+        console.error('Account deletion failed:', err);
+        this.showToast('Failed to delete account');
+      },
     });
   }
 
