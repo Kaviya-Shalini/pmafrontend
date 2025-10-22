@@ -1,77 +1,151 @@
 <div
-  class="min-h-screen w-full flex flex-col 
-         bg-gradient-to-tr from-indigo-950 via-purple-950 to-pink-950 
-         text-white relative overflow-hidden rounded-3xl p-8">
+  class="relative min-h-screen w-full flex flex-col items-center justify-start 
+          bg-gradient-to-tr from-indigo-950 via-purple-950 to-purple-950 
+         text-white font-inter overflow-hidden rounded-3xl p-8">
 
-  <!-- Floating Glows -->
-  <div class="absolute top-20 left-10 w-[400px] h-[400px] bg-pink-500 opacity-30 blur-[160px] animate-pulse-slow"></div>
-  <div class="absolute bottom-20 right-10 w-[400px] h-[400px] bg-indigo-400 opacity-20 blur-[180px] animate-pulse-slow"></div>
+  <!-- 🌌 Floating Gradient Lights -->
+  <div class="absolute top-10 left-20 w-[600px] h-[600px] bg-pink-500/30 blur-[220px] rounded-full animate-float"></div>
+  <div class="absolute bottom-20 right-16 w-[500px] h-[500px] bg-blue-500/25 blur-[240px] rounded-full animate-float-delayed"></div>
+  <div class="absolute top-[40%] left-[45%] w-[400px] h-[400px] bg-purple-500/20 blur-[180px] rounded-full animate-float-slow"></div>
 
-  <!-- Header -->
-  <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 z-10">
-    <div>
-      <h1 class="text-4xl font-extrabold tracking-wide drop-shadow-lg">
-        Settings - <span class="text-yellow-300">{{ user?.username }}</span>
-      </h1>
-      <p class="text-sm opacity-70 mt-2">Manage your account & learn about the app ✨</p>
-    </div>
-    <span *ngIf="user?.isAlzheimer"
-      class="px-4 py-1 bg-red-500/20 text-red-300 text-sm rounded-full mt-4 md:mt-0 shadow-md">
-      🧠 Alzheimer Patient
-    </span>
+  <!-- 🪩 Header -->
+  <header class="z-20 text-center mt-12 animate-fade-down">
+    <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight leading-tight bg-gradient-to-r from-pink-300 via-purple-400 to-indigo-400 text-transparent bg-clip-text drop-shadow-lg">
+      Settings
+    </h1>
+    <p class="text-white/70 mt-2 text-lg">
+      Manage your account & personalize your Memory Care experience
+    </p>
   </header>
 
-  <!-- User Info Card -->
-  <section class="bg-white/10 p-6 rounded-2xl shadow-2xl backdrop-blur-md border border-white/10 mb-8 z-10">
-    <h2 class="text-2xl font-bold text-yellow-300 mb-4">User Details</h2>
-    <div class="flex flex-col gap-2 text-white">
-      <p><strong>Username:</strong> {{ user?.username }}</p>
-      <!-- <p><strong>Email:</strong> {{ user?.email || '-' }}</p> -->
-      <p><strong>Alzheimer:</strong> {{ user?.isAlzheimer ? 'Yes 🧠' : 'No' }}</p>
-      <!-- <p><strong>Joined:</strong> {{ user?.createdAt | date:'mediumDate' }}</p> -->
+  <!-- 🌟 User Card -->
+  <section
+    class="z-20 w-full md:w-2/3 lg:w-1/2 mt-12 p-8 rounded-[2rem]
+           bg-white/10 backdrop-blur-xl border border-white/20 
+           
+           transition-all duration-500 hover:shadow-[0_0_80px_-10px_rgba(255,255,255,0.35)] hover:scale-[1.02] animate-fade-up">
+
+    <div class="flex flex-col items-center text-center">
+      <div
+        class="w-24 h-24 rounded-full bg-gradient-to-tr from-indigo-400 via-purple-400 to-pink-400 flex items-center justify-center text-4xl font-bold text-white shadow-lg mb-4 animate-float-subtle">
+        {{ user?.username?.charAt(0)?.toUpperCase() || 'U' }}
+      </div>
+
+      <h2 class="text-2xl font-semibold tracking-wide mb-1 text-white">
+        {{ user?.username }}
+      </h2>
+
+      <p *ngIf="user?.isAlzheimer" class="text-sm bg-red-500/20 text-red-300 px-4 py-1 rounded-full shadow-sm">
+        🧠 Alzheimer Patient
+      </p>
     </div>
 
-    <div class="mt-6">
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 text-white/90 text-center">
+     
+      <div class="p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+        <p class="text-sm opacity-70">Alzheimer</p>
+        <p class="font-medium">{{ user?.isAlzheimer ? 'Yes 🧠' : 'No' }}</p>
+      </div>
+      <div class="p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+        <p class="text-sm opacity-70">User ID</p>
+        <p class="font-medium">{{ user?.id }}</p>
+      </div>
+    </div>
+
+    <!-- ⚡ Delete Button -->
+    <div class="mt-10 text-center">
       <button
         (click)="deleteAccount()"
-        class="px-6 py-2 rounded-lg bg-rose-500 hover:bg-rose-600 text-white font-semibold shadow hover:scale-105 transition-all duration-300">
-        Delete Account
+        class="px-10 py-3 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-fuchsia-600 
+               text-white font-semibold shadow-lg shadow-rose-500/30
+               hover:shadow-rose-500/50 hover:scale-105 active:scale-95 transition-all duration-300 relative overflow-hidden group">
+        <span
+          class="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+        🗑 Delete Account
       </button>
     </div>
   </section>
 
-  <!-- About Section -->
-  <section class="bg-white/10 p-6 rounded-2xl shadow-2xl backdrop-blur-md border border-white/10 mb-8 z-10">
-    <h2 class="text-2xl font-bold text-yellow-300 mb-4">About Memory Care App</h2>
-    <h1 class="text-white/90 mb-4">
-      Memory Care is a personalized digital assistant designed to help individuals, especially those with Alzheimer’s or memory challenges, keep track of important events, memories, and emergency contacts.
-      <br><br>
-      Features include:
-      <ul class="list-disc list-inside mt-2">
-        <li>Personalized memory dashboard</li>
-        <li>Emergency contact management</li>
-        <li>Daily motivation and reminders</li>
-        <li>Charts showing memory trends</li>
-        <li>Offline support for secure data management</li>
-      </ul>
-    </h1>
-    <h3 class="text-lg font-semibold text-yellow-300 mt-4">Contact for Support</h3>
-    <p class="text-white/80 mt-1">
-      For troubleshooting, feedback, or inquiries, reach out via:
-      <br>Email: <a href="mailto:support@memorycare.app" class="underline text-indigo-300">support@memorycare.app</a>
-      <br>Phone: <a href="tel:+911234567890" class="underline text-indigo-300">+91 12345 67890</a>
+  <!-- 💫 About Section -->
+  <section
+    class="z-20 w-full md:w-2/3 lg:w-1/2 mt-16 p-8 rounded-[2rem] bg-white/5 
+           backdrop-blur-xl border border-white/10 shadow-lg 
+           hover:bg-white/10 transition-all duration-500 animate-fade-up delay-200">
+    <h2 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-300 to-purple-400 mb-4 text-center">
+      About Memory Care 💜
+    </h2>
+    <p class="text-white/80 leading-relaxed text-center">
+      Memory Care is a personalized AI assistant designed to support people with Alzheimer’s or memory challenges.
+      It helps users track important events, manage contacts, and stay inspired through daily motivation and reminders.
     </p>
+
+    <ul class="list-disc list-inside mt-4 space-y-2 text-white/80 text-sm md:text-base">
+      <li>🧭 Personalized Memory Dashboard</li>
+      <li>📞 Emergency Contact Management</li>
+      <li>🌅 Daily Reminders & Motivation</li>
+      <li>📊 Track Memory Trends</li>
+      <li>🔒 Offline Secure Data Management</li>
+    </ul>
+
+    <div class="mt-6 text-center">
+      <h3 class="text-lg font-semibold text-yellow-300 mb-1">Contact Support</h3>
+      <p class="text-white/80">
+        Email: <a href="mailto:support@memorycare.app" class="underline text-indigo-300 hover:text-pink-300">support@memorycare.app</a><br>
+        Phone: <a href="tel:+911234567890" class="underline text-indigo-300 hover:text-pink-300">+91 12345 67890</a>
+      </p>
+    </div>
   </section>
 
-  <!-- Footer -->
-  <footer class="text-center py-6 text-sm opacity-70 mt-auto z-10">
+  <!-- 🌙 Footer -->
+  <footer class="z-20 text-center mt-20 mb-6 text-sm text-white/60 animate-fade-up delay-300">
     © 2025 Memory Care • Designed with 💜 for Compassion
   </footer>
 
-  <!-- Toast -->
+  <!-- 🧊 Toast -->
   <div
     *ngIf="toastVisible"
-    class="fixed right-6 bottom-6 bg-emerald-500 text-slate-900 px-4 py-2 rounded-lg shadow-lg z-50">
+    class="fixed bottom-6 right-6 px-5 py-3 rounded-xl text-slate-900 font-semibold 
+           bg-gradient-to-r from-emerald-400 to-teal-400 shadow-lg animate-slide-up backdrop-blur-md z-50">
     {{ toastMessage }}
   </div>
 </div>
+
+<!-- ✨ Animations -->
+<style>
+@keyframes float {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  50% { transform: translateY(-30px) translateX(20px); }
+}
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  50% { transform: translateY(20px) translateX(-20px); }
+}
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-25px); }
+}
+@keyframes float-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes fade-up {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-down {
+  0% { opacity: 0; transform: translateY(-30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-up {
+  0% { transform: translateY(80px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.animate-float { animation: float 12s ease-in-out infinite; }
+.animate-float-delayed { animation: float-delayed 16s ease-in-out infinite; }
+.animate-float-slow { animation: float-slow 18s ease-in-out infinite; }
+.animate-float-subtle { animation: float-subtle 6s ease-in-out infinite; }
+.animate-fade-up { animation: fade-up 1.2s ease forwards; }
+.animate-fade-down { animation: fade-down 1.2s ease forwards; }
+.animate-slide-up { animation: slide-up 0.8s ease forwards; }
+</style>

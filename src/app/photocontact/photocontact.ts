@@ -124,6 +124,10 @@ export class PhotoContactsComponent implements OnInit {
       phone: contact.phone,
     });
     this.previewUrl = contact.photoUrl || null;
+
+    // ✅ Open modal for editing
+    this.showAddModal = true;
+
     this.showToast(`Editing ${contact.name}`);
   }
 
@@ -211,5 +215,18 @@ export class PhotoContactsComponent implements OnInit {
     this.toastMessage = msg;
     this.toastVisible = true;
     setTimeout(() => (this.toastVisible = false), 3000);
+  }
+  showAddModal: boolean = false; // Controls visibility of Add Contact modal
+
+  // Function to open the Add Contact modal
+  openAddModal() {
+    this.resetForm(); // Optional: clears any previous data
+    this.editingContactId = null; // Ensure we’re not editing
+    this.showAddModal = true;
+  }
+
+  // Function to close the Add Contact modal
+  closeAddModal() {
+    this.showAddModal = false;
   }
 }
