@@ -1,61 +1,28 @@
-<div *ngIf="currentReminder" 
-     class="fixed top-0 left-0 right-0 z-50 p-4 bg-yellow-600/95 
-            shadow-2xl border-b-4 border-yellow-300 backdrop-blur-sm 
-            flex flex-col sm:flex-row items-start sm:items-center justify-between transition-all duration-300">
-    
-    <div class="flex items-start space-x-4 mb-3 sm:mb-0">
-        <svg class="w-8 h-8 text-white flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-        </svg>
-        <div>
-            <h2 class="text-xl font-bold text-white">🔔 Reminder: {{ currentReminder.title }}</h2>
-            <p class="text-white/90 text-sm max-w-lg">{{ currentReminder.description | slice:0:100 }}<span *ngIf="currentReminder.description.length > 100">...</span></p>
-            <p *ngIf="currentReminder.reminderDaily" class="text-xs text-yellow-100 mt-1">
-                (Daily repeating reminder)
-            </p>
-        </div>
-    </div>
-
-    <div class="flex items-center space-x-3 flex-shrink-0 w-full sm:w-auto">
-        <button *ngIf="currentReminder.hasVoiceNote" (click)="playAudio()" 
-                class="flex items-center justify-center w-1/2 sm:w-auto px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-white font-semibold rounded-lg transition duration-200">
-            <svg class="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"></path></svg>
-            Play Voice
-        </button>
-
-        <button (click)="markAsRead()" 
-                class="flex items-center justify-center w-1/2 sm:w-auto px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition duration-200">
-            Mark as Read
-        </button>
-    </div>
-</div>
-
 <div class="min-h-screen flex bg-gradient-to-tr from-indigo-950 via-purple-900 to-pink-800 text-white relative">
 
   <button (click)="logout()"
-        class="fixed top-5 right-5 z-[10000] bg-gradient-to-tr from-purple-950 via-purple-950 to-purple-950 
-               px-5 py-2 rounded-xl border border-white/30 bg-white/5 
-               text-white font-bold hover:scale-105 transition-all duration-300 
-               shadow-lg hover:to-purple-700">
+          class="fixed top-5 right-5 z-[10000] bg-gradient-to-tr from-purple-950 via-purple-950 to-purple-950 
+                px-5 py-2 rounded-xl border border-white/30 bg-white/5 
+                text-white font-bold hover:scale-105 transition-all duration-300 
+                shadow-lg hover:to-purple-700">
     Logout
   </button>
 
-
   <aside [class.w-72]="!collapsed" [class.w-0]="collapsed"
-           class="relative flex flex-col bg-black/40 backdrop-blur-2xl 
+         class="relative flex flex-col bg-black/40 backdrop-blur-2xl 
                  shadow-[0_0_30px_rgba(255,0,150,0.5)] border-r border-white/10
                  transition-all duration-500 overflow-hidden">
 
     <div *ngIf="!collapsed" class="flex flex-col h-full">
-      
+
       <div class="flex items-center justify-between p-5 border-b border-white/10">
         <h1 class="text-3xl font-extrabold tracking-wide bg-gradient-to-r from-pink-400 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">
           MemoLink
         </h1>
         <button (click)="toggleSidebar()"
-                 class="p-2 rounded-lg bg-gradient-to-tr from-pink-500/30 to-purple-600/30 
-                        hover:from-pink-600 hover:to-purple-700 
-                        shadow-md hover:shadow-pink-500/50 transition duration-300">
+                class="p-2 rounded-lg bg-gradient-to-tr from-pink-500/30 to-purple-600/30 
+                       hover:from-pink-600 hover:to-purple-700 
+                       shadow-md hover:shadow-pink-500/50 transition duration-300">
           ⬅️
         </button>
       </div>
@@ -78,15 +45,52 @@
   <button *ngIf="collapsed"
         (click)="toggleSidebar()"
         class="fixed top-5 left-5 z-50 p-3 rounded-3xl
-               bg-gradient-to-tr from-pink-700/80 to-purple-700/80
-               hover:from-pink-800 hover:to-purple-900
-               shadow-lg hover:shadow-pink-700/50
-               transition duration-300">
+                bg-gradient-to-tr from-pink-700/80 to-purple-700/80
+                hover:from-pink-800 hover:to-purple-900
+                shadow-lg hover:shadow-pink-700/50
+                transition duration-300">
     <span class="text-white text-xl drop-shadow-lg">➡️</span>
   </button>
 
+  <div *ngIf="currentReminder" 
+       class="fixed bottom-4 right-4 z-50 w-full max-w-sm 
+              bg-gradient-to-br from-pink-900 to-purple-900 p-6 rounded-2xl 
+              shadow-2xl border-2 border-pink-500/50 animate-slideInUp">
+    
+    <div class="flex items-center space-x-3 mb-4">
+      <svg class="w-8 h-8 text-pink-300 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <h2 class="text-xl font-bold text-white">Memory Reminder Due!</h2>
+    </div>
+
+    <p class="text-lg font-semibold text-pink-200 mb-1 truncate">{{ currentReminder.title }}</p>
+    <p class="text-sm text-white/80 mb-3 line-clamp-2">{{ currentReminder.description }}</p>
+
+    <div *ngIf="currentReminder.hasVoiceNote && audioURL" class="mb-4">
+      <button (click)="playAudio()" 
+              class="w-full flex items-center justify-center space-x-2 p-3 rounded-xl 
+                     bg-pink-600 hover:bg-pink-700 transition font-semibold text-white mb-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a.5.5 0 01.121.577l-1.07 3.654a.5.5 0 01-.176.242l-2.73 2.73a.5.5 0 01-.707 0l-1.06-1.06a.5.5 0 010-.707l2.73-2.73a.5.5 0 01.242-.176l3.654-1.07a.5.5 0 01.577.121z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/>
+        </svg>
+        <span>Play Voice Note</span>
+      </button>
+    </div>
+    
+    <p class="text-xs text-center text-white/50 mb-4">
+      {{ currentReminder.reminderDaily ? 'This is a daily reminder.' : 'One-time reminder.' }}
+    </p>
+
+    <button (click)="markAsRead()"
+            class="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 transition 
+                   font-bold text-white shadow-lg shadow-green-500/30">
+      ✅ Mark as Read / Handled
+    </button>
+  </div>
 
   <main class="flex-1 p-10 overflow-y-auto">
-    <router-outlet></router-outlet> 
+    <router-outlet></router-outlet>
   </main>
 </div>

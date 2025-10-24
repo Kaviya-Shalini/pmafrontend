@@ -1,7 +1,8 @@
 // src/app/memory-reminder/memory-reminder.service.ts (New Service)
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable } from 'rxjs';
+// ADDED map, catchError, of for polling logic
+import { BehaviorSubject, Observable, catchError, of, map } from 'rxjs';
 import * as Stomp from 'stompjs';
 import SockJS from 'sockjs-client';
 
@@ -16,33 +17,71 @@ export interface MemoryReminder {
 
 @Injectable({ providedIn: 'root' })
 export class MemoryReminderService {
-  private userId: string | null = localStorage.getItem('pma-userId');
+  // Removed automatic fetching of userId here.
   private baseUrl = 'http://localhost:8080/api/memories';
   private latestReminder = new BehaviorSubject<MemoryReminder | null>(null);
   public currentReminder$ = this.latestReminder.asObservable();
   private stompClient!: Stomp.Client;
+  private isConnected = false;
 
-  constructor(private http: HttpClient) {
-    if (this.userId) {
-      this.connect();
+  // Constructor no longer calls connect() automatically
+  constructor(private http: HttpClient) {}
+
+  // 1. New Initialization Method (called externally once user ID is confirmed)
+  public initialize(userId: string): void {
+    if (!this.isConnected) {
+      this.connect(userId);
+      this.isConnected = true;
     }
   }
 
-  // 1. WebSocket Connection & Subscription
-  private connect(): void {
+  // 2. WebSocket Connection & Subscription (now accepts userId)
+  private connect(userId: string): void {
     const ws = new SockJS('http://localhost:8080/ws');
     this.stompClient = Stomp.over(ws);
 
-    this.stompClient.connect({}, () => {
-      console.log('Connected to WebSocket for reminders');
-      // Subscribe to the user's private reminder topic
-      this.stompClient.subscribe(`/topic/reminders/${this.userId}`, (message) => {
-        const reminder: MemoryReminder = JSON.parse(message.body);
-        this.latestReminder.next(reminder);
-      });
-    });
+    // FIX: Added error callback to diagnose STOMP handshake failures
+    this.stompClient.connect(
+      {}, // Headers
+      () => {
+        // Success Callback: This runs only after a successful handshake
+        console.log('Connected to WebSocket for reminders');
+        // Subscribe to the user's private reminder topic
+        this.stompClient.subscribe(`/topic/reminders/${userId}`, (message) => {
+          // Use passed userId
+          const reminder: MemoryReminder = JSON.parse(message.body);
+          this.latestReminder.next(reminder);
+        });
+      },
+      (error: Stomp.Frame | string) => {
+        console.error('WebSocket connection or STOMP handshake failed:', error);
+        this.isConnected = false;
+      }
+    );
   }
-  // 2. Mark as Read API Call
+
+  // ✅ NEW METHOD: Fetch any due and unread reminders on initial page load
+  public getDueRemindersOnLoad(userId: string): Observable<MemoryReminder | null> {
+    // Calls the new backend API endpoint
+    const url = `${this.baseUrl}/reminders/due/${userId}`;
+    return this.http.get<MemoryReminder[]>(url).pipe(
+      map((reminders) => {
+        if (reminders && reminders.length > 0) {
+          // If reminders are found on load, push the first one to the stream
+          const reminder = reminders[0];
+          this.latestReminder.next(reminder);
+          return reminder;
+        }
+        return null;
+      }),
+      catchError((error) => {
+        console.error('Error fetching due reminders on load:', error);
+        return of(null);
+      })
+    );
+  }
+
+  // 3. Mark as Read API Call
   markAsRead(memoryId: string): Observable<any> {
     const url = `${this.baseUrl}/${memoryId}/mark-read`;
     // Clear the currently displayed reminder upon action
@@ -50,7 +89,7 @@ export class MemoryReminderService {
     return this.http.patch(url, {}); // Use PATCH verb
   }
 
-  // 3. Get Voice Note URL (using existing download endpoint)
+  // 4. Get Voice Note URL (using existing download endpoint)
   getVoiceNoteUrl(memoryId: string): string {
     return `http://localhost:8080/api/memories/${memoryId}/download?type=voice`;
   }

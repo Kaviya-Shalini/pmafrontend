@@ -1,13 +1,17 @@
+// src/app/app.ts
+
 import { Component, signal } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
-import { RouterOutlet } from '@angular/router';
+// ✅ CRITICAL: Add RouterModule here
+import { RouterOutlet, RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, ReactiveFormsModule],
+  // ✅ FIX: Include RouterModule for routing directives (like routerLink) to work throughout the app
+  imports: [RouterOutlet, ReactiveFormsModule, RouterModule],
   templateUrl: './app.html',
-  styleUrl: './app.css',
+  styleUrls: ['./app.css'],
 })
 export class App {
   protected readonly title = signal('pmafrontend');

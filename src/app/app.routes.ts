@@ -9,7 +9,10 @@ import { SettingsComponent } from './settings/settings';
 
 export const routes: Routes = [
   // Public routes
-  { path: '', component: WelcomepmaComponent },
+  { path: '', redirectTo: 'welcome', pathMatch: 'full' },
+
+  // ✅ FIX 2: Define the welcome page on a distinct path
+  { path: 'welcome', component: WelcomepmaComponent },
   { path: 'auth', component: AuthComponent },
 
   // Layout wrapper with child pages

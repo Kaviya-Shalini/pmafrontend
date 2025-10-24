@@ -16,8 +16,9 @@ import { AuthInterceptor } from './app/auth.interceptor';
 bootstrapApplication(App, {
   providers: [
     provideHttpClient(withInterceptorsFromDi()),
-    provideHttpClient(),
+
     provideRouter(routes),
+    provideHttpClient(),
     importProvidersFrom(
       BrowserAnimationsModule,
       ToastrModule.forRoot({
