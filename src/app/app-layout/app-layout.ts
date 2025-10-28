@@ -31,6 +31,7 @@ export class AppLayoutComponent implements OnInit {
     { label: 'Photo contacts', route: '/photocontacts', icon: '📞' },
     { label: 'My People', route: '/mypeople', icon: '🫂' },
     { label: 'Emergency Help', route: '/emergencyhelp', icon: '‼️' },
+    { label: 'RoutineTracker', route: '/routinetracker', icon: '⚙️' },
     { label: 'Settings', route: '/settings', icon: '⚙️' },
   ];
 

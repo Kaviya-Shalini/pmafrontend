@@ -217,7 +217,31 @@
       </div>
     </div>
   </section>
-
+  <div *ngIf="activeRoutineNotification" 
+     class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-sm p-4">
+  <div class="bg-gray-900 border-4 border-indigo-500 rounded-xl shadow-2xl max-w-lg w-full p-8 text-center animate-pulse-slow">
+    <h3 class="text-4xl font-extrabold text-pink-400 mb-6">Routine Check-in!</h3>
+    
+    <p class="text-3xl text-white mb-8">{{ activeRoutineNotification.question }}</p>
+    
+    <div class="flex flex-col space-y-4">
+      <button 
+        (click)="respondToRoutine('YES')" 
+        class="bg-green-600 hover:bg-green-700 text-white text-2xl font-bold py-4 rounded-lg shadow-md transition duration-300 transform hover:scale-105"
+      >
+        YES
+      </button>
+      <button 
+        (click)="respondToRoutine('NO')" 
+        class="bg-red-600 hover:bg-red-700 text-white text-2xl font-bold py-4 rounded-lg shadow-md transition duration-300 transform hover:scale-105"
+      >
+        NO
+      </button>
+    </div>
+    
+    <p class="mt-6 text-sm text-gray-400">Please tap a button to confirm your status.</p>
+  </div>
+</div>
   <!-- Footer -->
   <footer class="text-center py-6 text-sm opacity-70 mt-8 z-10">
     © 2025 Memory Care • Designed with 💜 for Compassion

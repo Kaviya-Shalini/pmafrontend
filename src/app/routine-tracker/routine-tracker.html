@@ -1,0 +1,89 @@
+<div class="routine-tracker p-4 bg-gray-900 min-h-screen text-white">
+  <h1 class="text-3xl font-bold mb-6 text-pink-400">Routine Tracker Management</h1>
+  
+  <div class="bg-gray-800 p-6 rounded-lg shadow-xl mb-8">
+    <h2 class="text-xl font-semibold mb-4">Set a New Routine Task</h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <input 
+        type="text" 
+        [(ngModel)]="newQuestion" 
+        placeholder="e.g., Did you take your medication?" 
+        class="p-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white"
+      >
+      
+      <input 
+        type="time" 
+        [(ngModel)]="newScheduledTime" 
+        class="p-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white"
+      >
+
+      <div class="flex items-center space-x-3 p-3 bg-gray-700 rounded-md border border-gray-600">
+        <label for="repeatDaily" class="text-white flex-grow">Repeat Daily</label>
+        <input 
+          id="repeatDaily" 
+          type="checkbox" 
+          [(ngModel)]="repeatDaily" 
+          class="h-5 w-5 text-indigo-500 rounded border-gray-600"
+        >
+      </div>
+    </div>
+    
+    <button 
+      (click)="addRoutine()" 
+      class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-md transition duration-200"
+    >
+      Add Routine
+    </button>
+  </div>
+  
+  <h2 class="text-2xl font-semibold mb-4 text-indigo-400">Active Routines</h2>
+  <div class="space-y-4">
+    <div *ngFor="let task of tasks" class="bg-gray-800 p-4 rounded-lg flex justify-between items-center border border-gray-700">
+      <div>
+        <p class="font-bold text-lg">{{ task.question }}</p>
+        <p class="text-sm text-gray-400">Scheduled: {{ task.scheduledTime | slice:0:5 }} | Daily: {{ task.repeatDaily ? 'Yes' : 'No' }}</p>
+      </div>
+      <button 
+        (click)="viewHistory(task)" 
+        class="bg-pink-600 hover:bg-pink-700 text-white text-sm px-4 py-2 rounded-md transition duration-200"
+      >
+        View History (ACRS)
+      </button>
+    </div>
+  </div>
+  
+  <div *ngIf="selectedTaskHistory.length > 0" class="mt-8 bg-gray-800 p-6 rounded-lg shadow-xl">
+    <h2 class="text-xl font-semibold mb-4 text-pink-400">History for: "{{ selectedTaskQuestion }}"</h2>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-700">
+        <thead>
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Time Sent</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Response</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Time to Respond (ACRS)</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-700">
+          <tr *ngFor="let res of selectedTaskHistory" class="hover:bg-gray-700">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
+              {{ res.responseTimestamp | date:'mediumDate' }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
+              {{ res.notificationTimestamp | date:'shortTime' }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold"
+                [ngClass]="{'text-green-400': res.response === 'YES', 'text-red-400': res.response === 'NO', 'text-yellow-400': res.response === 'PENDING'}">
+              {{ res.response }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-indigo-300 font-mono">
+              {{ res.timeToRespond }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="mt-4 text-sm text-gray-400">Response time is the duration between notification sent and patient click.</p>
+  </div>
+</div>

@@ -5,7 +5,8 @@ import { Chart, registerables, ChartOptions } from 'chart.js';
 import { RouterModule } from '@angular/router';
 import { AlertService } from '../location/alert.service';
 import { Subscription, interval } from 'rxjs';
-
+import { RoutineService, RoutineNotification } from '../routine-tracker/routine.service';
+import { NgIf } from '@angular/common';
 Chart.register(...registerables);
 
 // Interface for the alert data structure
@@ -24,7 +25,7 @@ interface Coords {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, HttpClientModule],
+  imports: [CommonModule, RouterModule, HttpClientModule, NgIf],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.css'],
 })
@@ -43,8 +44,14 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private charts: Chart[] = [];
   alerts: Alert[] = [];
   private pollingSubscription!: Subscription;
+  activeRoutineNotification: RoutineNotification | null = null;
+  private routineSubscription!: Subscription;
 
-  constructor(private http: HttpClient, private alertService: AlertService) {}
+  constructor(
+    private http: HttpClient,
+    private alertService: AlertService,
+    private routineService: RoutineService
+  ) {}
 
   ngOnInit(): void {
     this.loadUser();
@@ -52,7 +59,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const userId = localStorage.getItem('pma-userId');
     if (userId) {
-      // Start polling for alerts every 1 second.
+      // --- Existing Logic: Start polling for location alerts ---
       this.pollingSubscription = interval(1000).subscribe(() => {
         this.alertService.fetchAlertsForUser(userId).subscribe((newAlerts) => {
           if (newAlerts && newAlerts.length > 0) {
@@ -64,13 +71,21 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
             // Clear the local display.
             this.alerts = [];
           }
-
-          // **THE FOLLOWING INCORRECT LOGIC HAS BEEN REMOVED:**
-          // setTimeout(() => {
-          //   this.alerts = [];
-          // }, 30000);
         });
       });
+
+      // --- NEW LOGIC: Routine WebSocket connection and subscription ---
+      // 1. Connect to the routine WebSocket using the patient's ID
+      this.routineService.connect(userId);
+
+      // 2. Subscribe to the routine notification Observable from the service
+      this.routineSubscription = this.routineService.routineNotification$.subscribe(
+        (notification) => {
+          // When a new routine notification arrives, set it as the active notification
+          this.activeRoutineNotification = notification;
+          // This will trigger the modal/popup in dashboard.html
+        }
+      );
     }
   }
 
@@ -80,6 +95,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.pollingSubscription) {
       this.pollingSubscription.unsubscribe();
     }
+    if (this.routineSubscription) {
+      this.routineSubscription.unsubscribe();
+    }
+    this.routineService.disconnect();
   }
 
   ngAfterViewInit(): void {
@@ -220,7 +239,24 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.charts.forEach((chart) => chart.destroy());
     this.charts = [];
   }
+  // NEW METHOD: Handles the patient clicking YES/NO
+  respondToRoutine(response: 'YES' | 'NO'): void {
+    if (!this.activeRoutineNotification) return;
 
+    this.routineService
+      .recordResponse(this.activeRoutineNotification.responseId, response)
+      .subscribe({
+        next: () => {
+          console.log(`Routine response recorded: ${response}`);
+          this.activeRoutineNotification = null; // Clear the modal after response
+        },
+        error: (err) => {
+          console.error('Failed to record routine response', err);
+          alert('Failed to record response. Please try again.');
+          this.activeRoutineNotification = null;
+        },
+      });
+  }
   createPieChart() {
     const ctx = this.pieChartRef?.nativeElement?.getContext('2d');
     if (!ctx) return;

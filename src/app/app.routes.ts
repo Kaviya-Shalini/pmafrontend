@@ -29,6 +29,11 @@ export const routes: Routes = [
         loadComponent: () => import('./add-memory/add-memory').then((m) => m.AddMemoryComponent),
       },
       {
+        path: 'routinetracker',
+        loadComponent: () =>
+          import('./routine-tracker/routine-tracker').then((m) => m.RoutineManagementComponent),
+      },
+      {
         path: 'photocontacts',
         loadComponent: () =>
           import('./photocontact/photocontact').then((m) => m.PhotoContactsComponent),
