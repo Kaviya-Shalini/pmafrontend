@@ -76,6 +76,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
       // --- NEW LOGIC: Routine WebSocket connection and subscription ---
       // 1. Connect to the routine WebSocket using the patient's ID
+      console.log(`WebSocket attempting connection using User ID: ${userId}`);
+
       this.routineService.connect(userId);
 
       // 2. Subscribe to the routine notification Observable from the service
