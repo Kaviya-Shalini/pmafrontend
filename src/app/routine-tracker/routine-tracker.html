@@ -1,89 +1,149 @@
-<div class="routine-tracker p-4 bg-gray-900 min-h-screen text-white">
-  <h1 class="text-3xl font-bold mb-6 text-pink-400">Routine Tracker Management</h1>
-  
-  <div class="bg-gray-800 p-6 rounded-lg shadow-xl mb-8">
-    <h2 class="text-xl font-semibold mb-4">Set a New Routine Task</h2>
-    
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-      <input 
-        type="text" 
-        [(ngModel)]="newQuestion" 
-        placeholder="e.g., Did you take your medication?" 
-        class="p-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white"
-      >
-      
-      <input 
-        type="time" 
-        [(ngModel)]="newScheduledTime" 
-        class="p-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white"
-      >
+<div
+  class="min-h-screen w-full flex flex-col 
+         bg-gradient-to-tr from-indigo-950 via-purple-950 to-pink-950 
+         text-white relative overflow-hidden rounded-3xl">
 
-      <div class="flex items-center space-x-3 p-3 bg-gray-700 rounded-md border border-gray-600">
-        <label for="repeatDaily" class="text-white flex-grow">Repeat Daily</label>
-        <input 
-          id="repeatDaily" 
-          type="checkbox" 
-          [(ngModel)]="repeatDaily" 
-          class="h-5 w-5 text-indigo-500 rounded border-gray-600"
-        >
-      </div>
+  <!-- Floating Glows -->
+  <div class="absolute top-20 left-10 w-[400px] h-[400px] bg-pink-500/20 blur-[180px] animate-pulse-slow"></div>
+  <div class="absolute bottom-20 right-10 w-[400px] h-[400px] bg-indigo-500/20 blur-[180px] animate-pulse-slow"></div>
+
+  <!-- Header -->
+  <header class="p-10 flex flex-col md:flex-row justify-between items-start md:items-center z-10">
+    <div>
+      <h1 class="text-4xl font-extrabold tracking-wide drop-shadow-lg">
+        🕒 Routine Tracker
+      </h1>
+      <p class="text-sm opacity-70 mt-2">Manage your daily check-ins seamlessly 💫</p>
     </div>
-    
-    <button 
-      (click)="addRoutine()" 
-      class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-md transition duration-200"
-    >
-      Add Routine
-    </button>
-  </div>
-  
-  <h2 class="text-2xl font-semibold mb-4 text-indigo-400">Active Routines</h2>
-  <div class="space-y-4">
-    <div *ngFor="let task of tasks" class="bg-gray-800 p-4 rounded-lg flex justify-between items-center border border-gray-700">
-      <div>
-        <p class="font-bold text-lg">{{ task.question }}</p>
-        <p class="text-sm text-gray-400">Scheduled: {{ task.scheduledTime | slice:0:5 }} | Daily: {{ task.repeatDaily ? 'Yes' : 'No' }}</p>
-      </div>
-      <button 
-        (click)="viewHistory(task)" 
-        class="bg-pink-600 hover:bg-pink-700 text-white text-sm px-4 py-2 rounded-md transition duration-200"
-      >
-        View History (ACRS)
+    <div class="mt-4 md:mt-0">
+      <button
+        class="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-600 
+               hover:scale-105 text-white px-6 py-3 rounded-2xl shadow-lg 
+               font-semibold transition-all duration-300">
+        ➕ Add New Routine
       </button>
     </div>
-  </div>
-  
-  <div *ngIf="selectedTaskHistory.length > 0" class="mt-8 bg-gray-800 p-6 rounded-lg shadow-xl">
-    <h2 class="text-xl font-semibold mb-4 text-pink-400">History for: "{{ selectedTaskQuestion }}"</h2>
-    <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-700">
-        <thead>
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Time Sent</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Response</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Time to Respond (ACRS)</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-700">
-          <tr *ngFor="let res of selectedTaskHistory" class="hover:bg-gray-700">
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
-              {{ res.responseTimestamp | date:'mediumDate' }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
-              {{ res.notificationTimestamp | date:'shortTime' }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold"
-                [ngClass]="{'text-green-400': res.response === 'YES', 'text-red-400': res.response === 'NO', 'text-yellow-400': res.response === 'PENDING'}">
-              {{ res.response }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-indigo-300 font-mono">
-              {{ res.timeToRespond }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+  </header>
+
+  <!-- Add Routine Form -->
+  <section
+    class="relative mx-auto mt-6 w-[90%] max-w-3xl bg-white/10 
+           backdrop-blur-md border border-white/20 rounded-3xl p-8 shadow-2xl z-10">
+
+    <h2 class="text-2xl font-bold text-yellow-300 mb-6 drop-shadow">
+      🧩 Create a Routine
+    </h2>
+
+    <form (ngSubmit)="addRoutine()" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Question -->
+      <div class="md:col-span-2">
+        <label class="block font-semibold mb-1 text-sm">Routine Question</label>
+        <input
+          [(ngModel)]="newRoutine.question"
+          name="question"
+          class="w-full p-3 bg-white/5 border border-white/20 rounded-xl
+                 focus:outline-none focus:ring-2 focus:ring-pink-500
+                 placeholder-gray-400 text-white"
+          placeholder="Enter a routine question"
+          required
+        />
+      </div>
+
+      <!-- Time -->
+      <div>
+        <label class="block font-semibold mb-1 text-sm">Time</label>
+        <input
+          [(ngModel)]="newRoutine.time"
+          name="time"
+          type="time"
+          class="w-full p-3 bg-white/5 border border-white/20 rounded-xl
+                 focus:outline-none focus:ring-2 focus:ring-indigo-500
+                 text-white"
+          required
+        />
+      </div>
+
+      <!-- Patient ID -->
+      <div>
+        <label class="block font-semibold mb-1 text-sm">Patient ID</label>
+        <input
+          [(ngModel)]="newRoutine.patientId"
+          name="patientId"
+          class="w-full p-3 bg-white/5 border border-white/20 rounded-xl
+                 focus:outline-none focus:ring-2 focus:ring-indigo-500
+                 placeholder-gray-400 text-white"
+          placeholder="Enter patient ID"
+          required
+        />
+      </div>
+
+      <!-- Repeat Daily -->
+      <div class="flex items-center space-x-3 md:col-span-2">
+        <input
+          [(ngModel)]="newRoutine.repeatDaily"
+          name="repeatDaily"
+          type="checkbox"
+          class="w-5 h-5 accent-pink-500 cursor-pointer"
+        />
+        <label class="text-sm font-medium">Repeat Daily</label>
+      </div>
+
+      <!-- Submit -->
+      <div class="md:col-span-2 text-center">
+        <button
+          type="submit"
+          class="mt-4 px-8 py-3 rounded-2xl bg-gradient-to-r 
+                 from-indigo-600 via-purple-600 to-pink-600 
+                 hover:scale-105 transition-all duration-300 
+                 font-bold shadow-lg"
+        >
+          ➕ Add Routine
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Existing Routines -->
+  <section class="relative mx-auto mt-12 w-[90%] max-w-4xl z-10">
+    <h3 class="text-2xl font-bold text-yellow-300 mb-4 drop-shadow">
+      📋 Existing Routines
+    </h3>
+
+    <div *ngIf="routines.length === 0" 
+         class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl 
+                p-6 text-center text-gray-300 italic shadow-inner">
+      No routines added yet.
     </div>
-    <p class="mt-4 text-sm text-gray-400">Response time is the duration between notification sent and patient click.</p>
-  </div>
+
+    <ul class="space-y-4">
+      <li
+        *ngFor="let r of routines"
+        class="bg-white/10 border border-white/20 rounded-2xl p-5 flex justify-between items-center 
+               backdrop-blur-md hover:scale-[1.02] transition-all duration-300 shadow-lg"
+      >
+        <div>
+          <div class="font-bold text-lg text-white">{{ r.question }}</div>
+          <div class="text-sm text-gray-300 mt-1">
+            🕒 {{ r.timeOfDay || r.time }} • 
+            {{ r.repeatDaily ? 'Daily' : 'Once' }}
+          </div>
+        </div>
+
+        <button
+          (click)="deleteRoutine(r.id)"
+          class="bg-gradient-to-r from-red-600 to-pink-600 px-4 py-2 
+                 rounded-xl text-white font-semibold hover:scale-110 
+                 shadow-md transition-all duration-300"
+        >
+          ✖
+        </button>
+      </li>
+    </ul>
+  </section>
+
+  
+  <!-- Footer -->
+  <footer class="text-center py-8 text-sm text-gray-400 mt-12 z-10">
+    © 2025 Memory Care • Designed with 💜 for Compassion
+  </footer>
 </div>

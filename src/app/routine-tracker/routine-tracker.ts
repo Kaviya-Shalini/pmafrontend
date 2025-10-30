@@ -1,97 +1,109 @@
 import { Component, OnInit } from '@angular/core';
-import { RoutineService, RoutineTask } from './routine.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
-import { AuthService } from '../auth/auth.service';
+import { RoutineService } from './routine.service';
 
 @Component({
-  selector: 'app-routine-management',
+  selector: 'app-routine-tracker',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './routine-tracker.html',
-  styleUrls: ['./routine-tracker.css'],
 })
-export class RoutineManagementComponent implements OnInit {
-  // Mock/Hardcoded patient ID for demonstration - replace with actual selection logic
-  patientId: string = 'PATIENT_ID_EXAMPLE';
-  caregiverId: string | null = null;
+export class RoutineTrackerComponent implements OnInit {
+  // Model for new routine form
+  newRoutine = {
+    question: '',
+    time: '',
+    repeatDaily: false,
+    patientId: '',
+  };
 
-  newQuestion: string = '';
-  newScheduledTime: string = '09:00'; // Default to 9 AM
-  repeatDaily: boolean = true;
+  routines: any[] = [];
+  familyMemberId: string = '';
 
-  tasks: RoutineTask[] = [];
-  selectedTaskHistory: any[] = [];
-  selectedTaskQuestion: string = '';
-
-  constructor(private routineService: RoutineService, private authService: AuthService) {}
+  constructor(private routineService: RoutineService) {}
 
   ngOnInit(): void {
-    this.caregiverId = this.authService.currentUserValue?.userId;
-    if (this.caregiverId) {
+    const userId = localStorage.getItem('pma-userId');
+    if (userId) {
+      this.familyMemberId = userId;
       this.loadRoutines();
-    }
-    // NOTE: In a complete application, you must first link the caregiver to a patient
-    // and dynamically fetch the `patientId`. For now, use the example ID.
-  }
-
-  loadRoutines(): void {
-    if (this.patientId) {
-      this.routineService.getPatientRoutines(this.patientId).subscribe({
-        next: (tasks) => (this.tasks = tasks),
-        error: (err) => console.error('Failed to load routines', err),
-      });
+    } else {
+      console.error('⚠️ Missing familyMemberId in localStorage');
     }
   }
 
   addRoutine(): void {
-    if (!this.newQuestion || !this.newScheduledTime || !this.caregiverId) {
-      alert('Please fill in all fields and ensure you are logged in.');
+    // ✅ Validate inputs
+    if (!this.newRoutine.question || !this.newRoutine.time) {
+      alert('⚠️ Please fill in the question and time.');
+      return;
+    }
+    if (!this.newRoutine.patientId) {
+      alert('⚠️ Please select a patient before adding a routine.');
       return;
     }
 
-    // Convert HH:mm to HH:mm:ss for the backend model
-    const scheduledTime = this.newScheduledTime + ':00';
-
-    const newTask: RoutineTask = {
-      patientId: this.patientId,
-      caregiverId: this.caregiverId,
-      question: this.newQuestion,
-      scheduledTime: scheduledTime,
-      repeatDaily: this.repeatDaily,
+    // ✅ Build payload matching backend expectations
+    const routinePayload = {
+      question: this.newRoutine.question,
+      timeOfDay: this.newRoutine.time,
+      repeatDaily: this.newRoutine.repeatDaily,
+      patientId: this.newRoutine.patientId,
+      createdBy: this.familyMemberId,
     };
 
-    this.routineService.createRoutine(newTask).subscribe({
-      next: () => {
-        this.newQuestion = '';
-        this.loadRoutines(); // Reload list
-        alert('Routine added successfully!');
+    console.log('📤 Sending routine payload:', routinePayload);
+
+    this.routineService.addRoutine(routinePayload).subscribe({
+      next: (res) => {
+        console.log('✅ Routine added:', res);
+        alert('✅ Routine added successfully!');
+        this.resetForm();
+        this.loadRoutines();
       },
-      error: (err) => console.error('Failed to add routine', err),
+      error: (err) => {
+        console.error('❌ Error adding routine:', err);
+        alert('⚠️ Failed to add routine. Check console for details.');
+      },
+    });
+  }
+  loadRoutines(): void {
+    const userId = localStorage.getItem('pma-userId');
+    if (!userId) return;
+
+    this.routineService.getSharedRoutines(userId).subscribe({
+      next: (data) => {
+        this.routines = data || [];
+        console.log('📋 Loaded shared routines:', this.routines);
+      },
+      error: (err) => console.error('❌ Error fetching shared routines:', err),
     });
   }
 
-  // ACRS: View response history and cognitive metric
-  viewHistory(task: RoutineTask): void {
-    this.selectedTaskQuestion = task.question;
-    this.routineService.getTaskHistory(task.id!).subscribe({
-      next: (history) => {
-        this.selectedTaskHistory = history.map((res) => ({
-          ...res,
-          timeToRespond: this.formatResponseTime(res.timeToRespondMs),
-        }));
-      },
-      error: (err) => console.error('Failed to load history', err),
-    });
+  deleteRoutine(id?: string): void {
+    if (!id) {
+      console.error('⚠️ Routine ID missing');
+      return;
+    }
+
+    if (confirm('🗑 Are you sure you want to delete this routine?')) {
+      this.routineService.deleteRoutine(id, this.familyMemberId).subscribe({
+        next: () => {
+          alert('✅ Routine deleted successfully!');
+          this.loadRoutines();
+        },
+        error: (err) => console.error('❌ Error deleting routine:', err),
+      });
+    }
   }
 
-  formatResponseTime(ms: number): string {
-    if (ms < 0) return 'Error (Negative Time)';
-    if (ms > 3600000) return 'Over 1 hour';
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
+  resetForm(): void {
+    this.newRoutine = {
+      question: '',
+      time: '',
+      repeatDaily: false,
+      patientId: '',
+    };
   }
 }

@@ -242,6 +242,13 @@
     <p class="mt-6 text-sm text-gray-400">Please tap a button to confirm your status.</p>
   </div>
 </div>
+<!-- Routine Notification Modal -->
+<div *ngIf="activeRoutineNotification" class="routine-popup">
+  <h3>{{ activeRoutineNotification.question }}</h3>
+  <button (click)="respondToRoutine('yes')">Yes</button>
+  <button (click)="respondToRoutine('no')">No</button>
+</div>
+
   <!-- Footer -->
   <footer class="text-center py-6 text-sm opacity-70 mt-8 z-10">
     © 2025 Memory Care • Designed with 💜 for Compassion

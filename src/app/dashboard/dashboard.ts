@@ -241,24 +241,17 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.charts.forEach((chart) => chart.destroy());
     this.charts = [];
   }
-  // NEW METHOD: Handles the patient clicking YES/NO
-  respondToRoutine(response: 'YES' | 'NO'): void {
+  respondToRoutine(response: string): void {
     if (!this.activeRoutineNotification) return;
 
     this.routineService
-      .recordResponse(this.activeRoutineNotification.responseId, response)
-      .subscribe({
-        next: () => {
-          console.log(`Routine response recorded: ${response}`);
-          this.activeRoutineNotification = null; // Clear the modal after response
-        },
-        error: (err) => {
-          console.error('Failed to record routine response', err);
-          alert('Failed to record response. Please try again.');
-          this.activeRoutineNotification = null;
-        },
+      .recordResponse(this.activeRoutineNotification.id!, response)
+      .subscribe(() => {
+        alert(`Response recorded: ${response}`);
+        this.activeRoutineNotification = null;
       });
   }
+
   createPieChart() {
     const ctx = this.pieChartRef?.nativeElement?.getContext('2d');
     if (!ctx) return;

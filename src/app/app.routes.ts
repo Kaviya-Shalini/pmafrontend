@@ -31,7 +31,7 @@ export const routes: Routes = [
       {
         path: 'routinetracker',
         loadComponent: () =>
-          import('./routine-tracker/routine-tracker').then((m) => m.RoutineManagementComponent),
+          import('./routine-tracker/routine-tracker').then((m) => m.RoutineTrackerComponent),
       },
       {
         path: 'photocontacts',

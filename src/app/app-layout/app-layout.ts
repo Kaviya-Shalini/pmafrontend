@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
-
+import { RoutineNotificationService } from '../routine-tracker/routine-notification.service';
 // Import the MemoryReminder interface and service
 import { MemoryReminder, MemoryReminderService } from '../memories/MemoryReminderService';
 
@@ -38,7 +38,8 @@ export class AppLayoutComponent implements OnInit {
   // ✅ CONSOLIDATED CONSTRUCTOR
   constructor(
     private router: Router,
-    private reminderService: MemoryReminderService // Inject the new service
+    private reminderService: MemoryReminderService,
+    private routineNotificationService: RoutineNotificationService // Inject the new service
   ) {}
 
   // ✅ NEW METHOD: Request Permission for Notifications
@@ -77,6 +78,49 @@ export class AppLayoutComponent implements OnInit {
     }
   }
 
+  // ngOnInit(): void {
+  //   // 1. Get the authenticated user ID from local storage
+  //   const userId = localStorage.getItem('pma-userId');
+
+  //   if (userId) {
+  //     // 2. Initialize the WebSocket connection (for LIVE updates)
+  //     // This solves the problem of not getting real-time notifications.
+  //     this.reminderService.initialize(userId);
+  //     console.log('Attempting to initialize MemoryReminderService for user:', userId);
+
+  //     // 3. Poll for any reminders that were triggered while the client was offline
+  //     // This solves the problem of reminders disappearing on refresh.
+  //     this.reminderService.getDueRemindersOnLoad(userId).subscribe(
+  //       // We subscribe to trigger the API call. The service's map() logic
+  //       // handles updating the currentReminder$ stream if a reminder is found.
+  //       () => console.log('Checked for pending reminders on load.')
+  //     );
+  //   } else {
+  //     console.warn(
+  //       'Cannot initialize MemoryReminderService: User ID not found in localStorage. WebSocket connection skipped.'
+  //     );
+  //   }
+
+  //   // 4. Request permission for native notifications
+  //   this.requestNotificationPermission();
+
+  //   // 5. Subscribe to the reminder stream (receives reminders from WebSocket OR HTTP Poll)
+  //   this.reminderService.currentReminder$.subscribe((reminder) => {
+  //     this.currentReminder = reminder;
+  //     this.audioURL = '';
+
+  //     if (reminder) {
+  //       // This logic executes when a reminder is received (live) or found (on load)
+  //       this.showNativeNotification(reminder);
+
+  //       if (reminder.hasVoiceNote) {
+  //         this.audioURL = this.reminderService.getVoiceNoteUrl(reminder.id);
+  //         setTimeout(() => this.playAudio(), 100);
+  //       }
+  //     }
+  //   });
+  // }
+  newRoutineNotification = false;
   ngOnInit(): void {
     // 1. Get the authenticated user ID from local storage
     const userId = localStorage.getItem('pma-userId');
@@ -94,16 +138,38 @@ export class AppLayoutComponent implements OnInit {
         // handles updating the currentReminder$ stream if a reminder is found.
         () => console.log('Checked for pending reminders on load.')
       );
+
+      // 🆕 4. Initialize Routine Tracker Notification WebSocket
+      this.routineNotificationService.connect(userId);
+      console.log('✅ RoutineNotificationService connected for user:', userId);
+
+      // 🆕 5. Subscribe to routine notifications stream
+      this.routineNotificationService.notification$.subscribe((msg) => {
+        if (msg) {
+          console.log('📬 Routine notification received:', msg);
+
+          // Show a browser push notification
+          if (Notification.permission === 'granted') {
+            new Notification('Routine Tracker Update', {
+              body: msg,
+              icon: 'favicon.ico',
+            });
+          }
+
+          // Also display a quick sidebar alert (can replace with a toast later)
+          alert(msg);
+        }
+      });
     } else {
       console.warn(
         'Cannot initialize MemoryReminderService: User ID not found in localStorage. WebSocket connection skipped.'
       );
     }
 
-    // 4. Request permission for native notifications
+    // 6. Request permission for native notifications
     this.requestNotificationPermission();
 
-    // 5. Subscribe to the reminder stream (receives reminders from WebSocket OR HTTP Poll)
+    // 7. Subscribe to the reminder stream (receives reminders from WebSocket OR HTTP Poll)
     this.reminderService.currentReminder$.subscribe((reminder) => {
       this.currentReminder = reminder;
       this.audioURL = '';
@@ -120,6 +186,12 @@ export class AppLayoutComponent implements OnInit {
     });
   }
 
+  toastMsg: string | null = null;
+
+  showRoutineToast(message: string) {
+    this.toastMsg = message;
+    setTimeout(() => (this.toastMsg = null), 4000); // hide after 4s
+  }
   // Toggle Sidebar Method (from your original code)
   toggleSidebar() {
     this.collapsed = !this.collapsed;

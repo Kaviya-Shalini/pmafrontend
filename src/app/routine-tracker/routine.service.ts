@@ -1,84 +1,76 @@
+// src/app/services/routine-tracker.service.ts
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, Subject } from 'rxjs';
+import { Client, over } from 'stompjs';
 import * as Stomp from 'stompjs';
 import SockJS from 'sockjs-client';
-
-export interface RoutineTask {
-  id?: string;
-  patientId: string;
-  caregiverId: string;
-  question: string;
-  scheduledTime: string; // "HH:mm:ss"
-  repeatDaily: boolean;
-}
+import { BehaviorSubject, Observable } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 
 export interface RoutineNotification {
-  responseId: string;
+  id?: string;
   question: string;
-  notificationTimeMs: number;
+  time: string; // e.g. "09:00"
+  repeatDaily: boolean;
+  patientId: string;
+  familyMemberId: string;
 }
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class RoutineService {
-  private apiUrl = 'http://localhost:8080/api/routine';
-  private stompClient: Stomp.Client | null = null;
-  private notificationSubject = new Subject<RoutineNotification>();
-  public routineNotification$ = this.notificationSubject.asObservable();
+  private stompClient!: Client;
+  private connected = false;
+
+  private routineNotificationSubject = new BehaviorSubject<any | null>(null);
+  routineNotification$ = this.routineNotificationSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
-  // 1. Caregiver Functions (CRUD)
-  createRoutine(task: RoutineTask): Observable<RoutineTask> {
-    return this.http.post<RoutineTask>(`${this.apiUrl}/tasks`, task);
-  }
-
-  getPatientRoutines(patientId: string): Observable<RoutineTask[]> {
-    return this.http.get<RoutineTask[]>(`${this.apiUrl}/tasks/patient/${patientId}`);
-  }
-
-  getTaskHistory(taskId: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/responses/task/${taskId}`);
-  }
-
-  // 2. Patient Function (Record Response)
-  recordResponse(responseId: string, response: 'YES' | 'NO'): Observable<any> {
-    const payload = {
-      responseId: responseId,
-      response: response,
-      responseTimestamp: new Date().toISOString(), // Capture the exact click time
-    };
-    return this.http.post(`${this.apiUrl}/response`, payload);
-  }
-
-  // 3. WebSocket Setup (for Patient)
-  public connect(patientId: string): void {
+  connect(userId: string): void {
     const socket = new SockJS('http://localhost:8080/ws');
-    this.stompClient = Stomp.over(socket);
+    this.stompClient = over(socket);
 
-    this.stompClient.connect(
-      {},
-      () => {
-        console.log('Routine WebSocket Connected');
-        // Subscribe to the patient's personal routine topic
-        this.stompClient?.subscribe(`/topic/routine/${patientId}`, (message: Stomp.Message) => {
-          const notification: RoutineNotification = JSON.parse(message.body);
-          this.notificationSubject.next(notification); // Push the notification to the subject
-        });
-      },
-      (error) => {
-        console.error('Routine WebSocket connection error:', error);
-      }
+    this.stompClient.connect({}, () => {
+      this.connected = true;
+      console.log('✅ Connected to Routine WebSocket');
+      this.stompClient.subscribe(`/routine/${userId}`, (message) => {
+        if (message.body) {
+          const notification = JSON.parse(message.body);
+          this.routineNotificationSubject.next(notification);
+        }
+      });
+    });
+  }
+
+  disconnect(): void {
+    if (this.stompClient && this.connected) {
+      this.stompClient.disconnect(() => console.log('❌ Disconnected Routine WebSocket'));
+      this.connected = false;
+    }
+  }
+
+  // CRUD operations for routines
+  addRoutine(routine: any): Observable<any> {
+    return this.http.post('http://localhost:8080/api/routines/create', routine);
+  }
+
+  getRoutinesForPatient(patientId: string): Observable<any[]> {
+    return this.http.get<any[]>(`http://localhost:8080/api/routines/forPatient/${patientId}`);
+  }
+
+  getRoutinesByFamilyMember(familyMemberId: string): Observable<any[]> {
+    return this.http.get<any[]>(`http://localhost:8080/api/routines/family/${familyMemberId}`);
+  }
+  getSharedRoutines(userId: string): Observable<any[]> {
+    return this.http.get<any[]>(`http://localhost:8080/api/routines/shared/${userId}`);
+  }
+
+  deleteRoutine(routineId: string, requestedBy: string): Observable<any> {
+    return this.http.delete(
+      `http://localhost:8080/api/routines/${routineId}?requestedBy=${requestedBy}`
     );
   }
 
-  public disconnect(): void {
-    if (this.stompClient && this.stompClient.connected) {
-      this.stompClient.disconnect(() => {
-        console.log('Routine WebSocket Disconnected');
-      });
-    }
+  recordResponse(routineId: string, response: string): Observable<any> {
+    return this.http.post(`http://localhost:8080/api/routines/respond/${routineId}`, { response });
   }
 }

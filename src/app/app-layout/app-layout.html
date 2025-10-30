@@ -38,6 +38,7 @@
           <span class="text-2xl drop-shadow-md">{{item.icon}}</span>
           <span class="font-medium tracking-wide">{{item.label}}</span>
         </a>
+        
       </nav>
     </div>
   </aside>
@@ -82,15 +83,33 @@
     <p class="text-xs text-center text-white/50 mb-4">
       {{ currentReminder.reminderDaily ? 'This is a daily reminder.' : 'One-time reminder.' }}
     </p>
-
+    
     <button (click)="markAsRead()"
             class="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 transition 
                    font-bold text-white shadow-lg shadow-green-500/30">
       ✅ Mark as Read / Handled
     </button>
   </div>
+  
 
   <main class="flex-1 p-10 overflow-y-auto">
     <router-outlet></router-outlet>
   </main>
+  <!-- 🆕 Floating toast for new routine messages -->
+<div *ngIf="toastMsg"
+     class="fixed bottom-6 right-6 z-[9999] bg-gradient-to-r from-pink-600 to-purple-700
+            text-white px-6 py-4 rounded-2xl shadow-2xl border border-pink-400/40 
+            animate-slideInUp backdrop-blur-lg">
+  <div class="flex items-center space-x-3">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-pink-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M13 16h-1v-4h-1m1-4h.01M12 20h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/>
+    </svg>
+    <div>
+      <p class="text-sm font-semibold">New Routine Alert</p>
+      <p class="text-sm opacity-90">{{ toastMsg }}</p>
+    </div>
+  </div>
+</div>
+
 </div>
