@@ -70,7 +70,7 @@ export class SettingsComponent implements OnInit {
         localStorage.removeItem('user');
 
         setTimeout(() => {
-          this.router.navigate(['/login']);
+          this.router.navigate(['/auth']);
         }, 1500);
       },
       error: (err) => {

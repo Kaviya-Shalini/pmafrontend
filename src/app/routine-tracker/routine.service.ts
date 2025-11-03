@@ -19,6 +19,7 @@ export interface RoutineNotification {
 export class RoutineService {
   private stompClient!: Client;
   private connected = false;
+  private baseUrl = 'http://localhost:8080/api';
 
   private routineNotificationSubject = new BehaviorSubject<any | null>(null);
   routineNotification$ = this.routineNotificationSubject.asObservable();
@@ -72,5 +73,21 @@ export class RoutineService {
 
   recordResponse(routineId: string, response: string): Observable<any> {
     return this.http.post(`http://localhost:8080/api/routines/respond/${routineId}`, { response });
+  }
+  addResponse(routineId: string, patientId: string, createdBy: string, answer: string) {
+    const payload = {
+      routineId: routineId,
+      patientId: patientId,
+      createdBy: createdBy,
+      answer: answer,
+    };
+
+    console.log('📤 Sending routine response payload:', payload);
+
+    return this.http.post('http://localhost:8080/api/routineResponses/respond', payload);
+  }
+
+  getLatestResponse(routineId: string) {
+    return this.http.get(`${this.baseUrl}/routineResponses/${routineId}/latest`);
   }
 }

@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { RoutineNotificationService } from '../routine-tracker/routine-notification.service';
 // Import the MemoryReminder interface and service
 import { MemoryReminder, MemoryReminderService } from '../memories/MemoryReminderService';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-layout',
@@ -20,6 +21,8 @@ export class AppLayoutComponent implements OnInit {
   audioURL: string = '';
   audioPlayer: HTMLAudioElement | null = null;
   private notificationPermission: NotificationPermission = 'default';
+  toastMsg: string | null = null;
+  // const messageText = msg || '📅 Your family has updated your routine.';
 
   // Navigation Items (kept from your original code)
   navItems = [
@@ -31,7 +34,7 @@ export class AppLayoutComponent implements OnInit {
     { label: 'Photo contacts', route: '/photocontacts', icon: '📞' },
     { label: 'My People', route: '/mypeople', icon: '🫂' },
     { label: 'Emergency Help', route: '/emergencyhelp', icon: '‼️' },
-    { label: 'RoutineTracker', route: '/routinetracker', icon: '⚙️' },
+    { label: 'RoutineTracker', route: '/routinetracker', icon: '⏰' },
     { label: 'Settings', route: '/settings', icon: '⚙️' },
   ];
 
@@ -120,73 +123,70 @@ export class AppLayoutComponent implements OnInit {
   //     }
   //   });
   // }
+  private routineSub?: Subscription;
   newRoutineNotification = false;
   ngOnInit(): void {
-    // 1. Get the authenticated user ID from local storage
     const userId = localStorage.getItem('pma-userId');
-
-    if (userId) {
-      // 2. Initialize the WebSocket connection (for LIVE updates)
-      // This solves the problem of not getting real-time notifications.
-      this.reminderService.initialize(userId);
-      console.log('Attempting to initialize MemoryReminderService for user:', userId);
-
-      // 3. Poll for any reminders that were triggered while the client was offline
-      // This solves the problem of reminders disappearing on refresh.
-      this.reminderService.getDueRemindersOnLoad(userId).subscribe(
-        // We subscribe to trigger the API call. The service's map() logic
-        // handles updating the currentReminder$ stream if a reminder is found.
-        () => console.log('Checked for pending reminders on load.')
-      );
-
-      // 🆕 4. Initialize Routine Tracker Notification WebSocket
-      this.routineNotificationService.connect(userId);
-      console.log('✅ RoutineNotificationService connected for user:', userId);
-
-      // 🆕 5. Subscribe to routine notifications stream
-      this.routineNotificationService.notification$.subscribe((msg) => {
-        if (msg) {
-          console.log('📬 Routine notification received:', msg);
-
-          // Show a browser push notification
-          if (Notification.permission === 'granted') {
-            new Notification('Routine Tracker Update', {
-              body: msg,
-              icon: 'favicon.ico',
-            });
-          }
-
-          // Also display a quick sidebar alert (can replace with a toast later)
-          alert(msg);
-        }
-      });
-    } else {
-      console.warn(
-        'Cannot initialize MemoryReminderService: User ID not found in localStorage. WebSocket connection skipped.'
-      );
+    if (!userId) {
+      console.warn('⚠️ Missing user ID in localStorage. WebSocket connection skipped.');
+      return;
     }
 
-    // 6. Request permission for native notifications
+    // 🔹 1. Fetch the logged-in user to know if they are a patient or family member
+    this.reminderService.initialize(userId);
+    this.routineNotificationService.connect(userId);
+    console.log('✅ Connected services for user:', userId);
+
     this.requestNotificationPermission();
 
-    // 7. Subscribe to the reminder stream (receives reminders from WebSocket OR HTTP Poll)
-    this.reminderService.currentReminder$.subscribe((reminder) => {
-      this.currentReminder = reminder;
-      this.audioURL = '';
+    // Load user info from backend to decide behavior
+    fetch(`http://localhost:8080/api/user/${userId}`)
+      .then((res) => res.json())
+      .then((user) => {
+        const isAlzheimerPatient =
+          user.isAlzheimer === true ||
+          user.condition?.toLowerCase() === 'alzheimer' ||
+          user.diagnosis?.toLowerCase() === 'alzheimer' ||
+          localStorage.getItem('pma-role') === 'patient';
 
-      if (reminder) {
-        // This logic executes when a reminder is received (live) or found (on load)
-        this.showNativeNotification(reminder);
+        console.log('🧠 Alzheimer patient?', isAlzheimerPatient);
 
-        if (reminder.hasVoiceNote) {
-          this.audioURL = this.reminderService.getVoiceNoteUrl(reminder.id);
-          setTimeout(() => this.playAudio(), 100);
-        }
-      }
-    });
+        // 🔹 2. Subscribe to routine WebSocket only if Alzheimer patient
+        this.routineSub = this.routineNotificationService.notification$.subscribe((msg) => {
+          if (msg && isAlzheimerPatient) {
+            console.log('📩 Routine Notification:', msg);
+            const messageText = msg || '📅 Your family has updated your routine.';
+
+            // Show only to Alzheimer patient
+            if (confirm(`${messageText}\n\nTap OK to view Routine Tracker.`)) {
+              setTimeout(() => {
+                this.router.navigate(['/routinetracker']);
+              }, 200);
+            }
+          }
+        });
+
+        // 🔹 3. Poll for any missed memory reminders (works for all users)
+        this.reminderService.getDueRemindersOnLoad(userId).subscribe(() => {
+          console.log('Checked for pending reminders on load.');
+        });
+
+        // 🔹 4. Subscribe to memory reminder stream
+        this.reminderService.currentReminder$.subscribe((reminder) => {
+          this.currentReminder = reminder;
+          this.audioURL = '';
+
+          if (reminder) {
+            this.showNativeNotification(reminder);
+            if (reminder.hasVoiceNote) {
+              this.audioURL = this.reminderService.getVoiceNoteUrl(reminder.id);
+              setTimeout(() => this.playAudio(), 100);
+            }
+          }
+        });
+      })
+      .catch((err) => console.error('Failed to load user info', err));
   }
-
-  toastMsg: string | null = null;
 
   showRoutineToast(message: string) {
     this.toastMsg = message;
@@ -243,5 +243,10 @@ export class AppLayoutComponent implements OnInit {
         },
       });
     }
+  }
+  // ✅ Cleanly disconnect WebSockets
+  ngOnDestroy(): void {
+    this.routineSub?.unsubscribe();
+    this.routineNotificationService.disconnect();
   }
 }

@@ -44,13 +44,12 @@ export class MemoryReminderService {
     this.stompClient.connect(
       {}, // Headers
       () => {
-        // Success Callback: This runs only after a successful handshake
         console.log('Connected to WebSocket for reminders');
-        // Subscribe to the user's private reminder topic
+        // ✅ This is the correct subscription point for real-time reminders
         this.stompClient.subscribe(`/topic/reminders/${userId}`, (message) => {
-          // Use passed userId
           const reminder: MemoryReminder = JSON.parse(message.body);
           this.latestReminder.next(reminder);
+          console.log('✅ Received live reminder:', reminder.title);
         });
       },
       (error: Stomp.Frame | string) => {

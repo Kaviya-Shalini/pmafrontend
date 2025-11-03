@@ -2,6 +2,13 @@
   class="min-h-screen w-full flex flex-col 
          bg-gradient-to-tr from-indigo-950 via-purple-950 to-pink-950 
          text-white relative overflow-hidden rounded-3xl">
+         <div class="text-center mt-4 text-lg font-semibold">
+  🧠 Alzheimer’s Patient: 
+  <span [ngClass]="isAlzheimerPatient ? 'text-green-400' : 'text-red-400'">
+    {{ isAlzheimerPatient ? 'Yes' : 'No' }}
+  </span>
+</div>
+
 
   <!-- Floating Glows -->
   <div class="absolute top-20 left-10 w-[400px] h-[400px] bg-pink-500/20 blur-[180px] animate-pulse-slow"></div>
@@ -116,29 +123,67 @@
     </div>
 
     <ul class="space-y-4">
-      <li
-        *ngFor="let r of routines"
-        class="bg-white/10 border border-white/20 rounded-2xl p-5 flex justify-between items-center 
-               backdrop-blur-md hover:scale-[1.02] transition-all duration-300 shadow-lg"
-      >
-        <div>
-          <div class="font-bold text-lg text-white">{{ r.question }}</div>
-          <div class="text-sm text-gray-300 mt-1">
-            🕒 {{ r.timeOfDay || r.time }} • 
-            {{ r.repeatDaily ? 'Daily' : 'Once' }}
-          </div>
-        </div>
+  <li
+    *ngFor="let r of routines"
+    class="bg-white/10 border border-white/20 rounded-2xl p-5 
+           flex flex-col md:flex-row justify-between md:items-center 
+           backdrop-blur-md hover:scale-[1.02] transition-all duration-300 shadow-lg"
+  >
+    <div>
+      <div class="font-bold text-lg text-white">{{ r.question }}</div>
+      <div class="text-sm text-gray-300 mt-1">
+        🕒 {{ r.timeOfDay || r.time }} • {{ r.repeatDaily ? 'Daily' : 'Once' }}
+      </div>
 
-        <button
-          (click)="deleteRoutine(r.id)"
-          class="bg-gradient-to-r from-red-600 to-pink-600 px-4 py-2 
-                 rounded-xl text-white font-semibold hover:scale-110 
-                 shadow-md transition-all duration-300"
-        >
-          ✖
-        </button>
-      </li>
-    </ul>
+      <div *ngIf="r.latestResponse?.answeredAt" class="text-green-300 text-sm mt-2">
+        ✅ Last Response: {{ r.latestResponse?.answer | uppercase }} 
+        at {{ r.latestResponse?.answeredAt | date:'shortTime' }}
+      </div>
+      <div *ngIf="!r.latestResponse?.answeredAt" class="text-yellow-400 text-sm mt-2">
+        ⏳ No response yet
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 mt-4 md:mt-0">
+      <div *ngIf="isAlzheimerPatient" class="flex gap-3 mt-3">
+  <!-- ✅ YES BUTTON -->
+  <button
+    (click)="sendResponse(r.id || r._id, 'Yes')"
+    class="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600
+           text-white font-semibold px-5 py-2.5 rounded-xl shadow-md
+           hover:from-green-400 hover:to-emerald-500 hover:scale-105 
+           transition-all duration-300 active:scale-95"
+  >
+    👍 <span>Yes</span>
+  </button>
+
+  <!-- ❌ NO BUTTON -->
+  <button
+    (click)="sendResponse(r.id || r._id, 'No')"
+    class="flex items-center gap-2 bg-gradient-to-r from-red-500 to-pink-600
+           text-white font-semibold px-5 py-2.5 rounded-xl shadow-md
+           hover:from-red-400 hover:to-pink-500 hover:scale-105 
+           transition-all duration-300 active:scale-95"
+  >
+    👎 <span>No</span>
+  </button>
+</div>
+
+
+      <!-- Family member can delete -->
+      <button
+        *ngIf="!isAlzheimerPatient"
+        (click)="deleteRoutine(r.id)"
+        class="bg-gradient-to-r from-red-600 to-pink-600 px-4 py-2 
+               rounded-xl text-white font-semibold hover:scale-110 
+               shadow-md transition-all duration-300"
+      >
+        ✖
+      </button>
+    </div>
+  </li>
+</ul>
+
   </section>
 
   

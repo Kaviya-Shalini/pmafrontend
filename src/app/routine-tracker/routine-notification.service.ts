@@ -12,16 +12,38 @@ export class RoutineNotificationService {
   connect(userId: string): void {
     const socket = new SockJS('http://localhost:8080/ws');
     this.stompClient = over(socket);
+    this.stompClient.debug = () => {}; // Add this to reduce console spam
 
-    this.stompClient.connect({}, () => {
-      console.log('Routine Notification WebSocket connected.');
+    this.stompClient.connect(
+      {},
+      // SUCCESS CALLBACK
+      () => {
+        console.log('Routine Notification WebSocket connected.');
 
-      this.stompClient?.subscribe(`/topic/notifications/${userId}`, (message) => {
-        if (message.body) {
-          console.log('📩 Routine notification received:', message.body);
-          this.notificationSubject.next(message.body);
-        }
+        // ✅ CRITICAL: Subscription must be inside the connect success callback
+        this.stompClient?.subscribe(
+          `/topic/notifications/${userId}`,
+          (message) => {
+            if (message.body) {
+              console.log('📩 Routine notification received:', message.body);
+              this.notificationSubject.next(message.body);
+            }
+          },
+          // Optional: Subscription confirmation header/callback
+          () => console.log(`Subscribed to routine topic for user: ${userId}`)
+        );
+      },
+      // ❌ CRITICAL: Add ERROR CALLBACK for diagnostics
+      (error) => {
+        console.error('Routine Notification WebSocket Error/Handshake Failed:', error);
+      }
+    );
+  }
+  disconnect(): void {
+    if (this.stompClient && this.stompClient.connected) {
+      this.stompClient.disconnect(() => {
+        console.log('Routine Notification WebSocket disconnected.');
       });
-    });
+    }
   }
 }
