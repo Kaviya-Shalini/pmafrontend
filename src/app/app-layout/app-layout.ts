@@ -5,7 +5,7 @@ import { RoutineNotificationService } from '../routine-tracker/routine-notificat
 // Import the MemoryReminder interface and service
 import { MemoryReminder, MemoryReminderService } from '../memories/MemoryReminderService';
 import { Subscription } from 'rxjs';
-
+import { NgZone } from '@angular/core';
 @Component({
   selector: 'app-layout',
   standalone: true,
@@ -42,7 +42,8 @@ export class AppLayoutComponent implements OnInit {
   constructor(
     private router: Router,
     private reminderService: MemoryReminderService,
-    private routineNotificationService: RoutineNotificationService // Inject the new service
+    private routineNotificationService: RoutineNotificationService,
+    private zone: NgZone // Inject the new service
   ) {}
 
   // ✅ NEW METHOD: Request Permission for Notifications
@@ -107,7 +108,7 @@ export class AppLayoutComponent implements OnInit {
   //   // 4. Request permission for native notifications
   //   this.requestNotificationPermission();
 
-  //   // 5. Subscribe to the reminder stream (receives reminders from WebSocket OR HTTP Poll)
+  // 5. Subscribe to the reminder stream (receives reminders from WebSocket OR HTTP Poll)
   //   this.reminderService.currentReminder$.subscribe((reminder) => {
   //     this.currentReminder = reminder;
   //     this.audioURL = '';
@@ -126,20 +127,41 @@ export class AppLayoutComponent implements OnInit {
   private routineSub?: Subscription;
   newRoutineNotification = false;
   ngOnInit(): void {
+    this.handleResize();
+    window.addEventListener('resize', this.handleResize.bind(this));
+
     const userId = localStorage.getItem('pma-userId');
     if (!userId) {
       console.warn('⚠️ Missing user ID in localStorage. WebSocket connection skipped.');
       return;
     }
 
-    // 🔹 1. Fetch the logged-in user to know if they are a patient or family member
+    // ✅ Step 1: Request notifications early
+    this.requestNotificationPermission();
+
+    // ✅ Step 2: Initialize services
     this.reminderService.initialize(userId);
     this.routineNotificationService.connect(userId);
     console.log('✅ Connected services for user:', userId);
 
-    this.requestNotificationPermission();
+    // ✅ Step 3: Subscribe to reminders (ensure Angular zone triggers)
+    this.reminderService.currentReminder$.subscribe((reminder) => {
+      this.zone.run(() => {
+        console.log('🔔 Received reminder:', reminder);
+        this.currentReminder = reminder;
+        this.audioURL = '';
 
-    // Load user info from backend to decide behavior
+        if (reminder) {
+          this.showNativeNotification(reminder);
+          if (reminder.hasVoiceNote) {
+            this.audioURL = this.reminderService.getVoiceNoteUrl(reminder.id);
+            setTimeout(() => this.playAudio(), 100);
+          }
+        }
+      });
+    });
+
+    // ✅ Step 4: Load user and handle routine notifications
     fetch(`http://localhost:8080/api/user/${userId}`)
       .then((res) => res.json())
       .then((user) => {
@@ -151,38 +173,18 @@ export class AppLayoutComponent implements OnInit {
 
         console.log('🧠 Alzheimer patient?', isAlzheimerPatient);
 
-        // 🔹 2. Subscribe to routine WebSocket only if Alzheimer patient
         this.routineSub = this.routineNotificationService.notification$.subscribe((msg) => {
           if (msg && isAlzheimerPatient) {
             console.log('📩 Routine Notification:', msg);
             const messageText = msg || '📅 Your family has updated your routine.';
-
-            // Show only to Alzheimer patient
             if (confirm(`${messageText}\n\nTap OK to view Routine Tracker.`)) {
-              setTimeout(() => {
-                this.router.navigate(['/routinetracker']);
-              }, 200);
+              setTimeout(() => this.router.navigate(['/routinetracker']), 200);
             }
           }
         });
 
-        // 🔹 3. Poll for any missed memory reminders (works for all users)
         this.reminderService.getDueRemindersOnLoad(userId).subscribe(() => {
           console.log('Checked for pending reminders on load.');
-        });
-
-        // 🔹 4. Subscribe to memory reminder stream
-        this.reminderService.currentReminder$.subscribe((reminder) => {
-          this.currentReminder = reminder;
-          this.audioURL = '';
-
-          if (reminder) {
-            this.showNativeNotification(reminder);
-            if (reminder.hasVoiceNote) {
-              this.audioURL = this.reminderService.getVoiceNoteUrl(reminder.id);
-              setTimeout(() => this.playAudio(), 100);
-            }
-          }
         });
       })
       .catch((err) => console.error('Failed to load user info', err));
@@ -206,7 +208,7 @@ export class AppLayoutComponent implements OnInit {
     localStorage.removeItem('user');
 
     // Redirect to the authentication page
-    this.router.navigate(['/auth']);
+    this.router.navigate(['/welcome']);
   }
 
   // ✅ Play Audio Method
@@ -248,5 +250,20 @@ export class AppLayoutComponent implements OnInit {
   ngOnDestroy(): void {
     this.routineSub?.unsubscribe();
     this.routineNotificationService.disconnect();
+  }
+  // ✅ NEW: Automatically collapse sidebar on smaller screens
+  handleResize(): void {
+    if (window.innerWidth <= 1024 && !this.collapsed) {
+      this.collapsed = true;
+    } else if (window.innerWidth > 1024 && this.collapsed) {
+      // Optional: auto-expand again on large screens
+      this.collapsed = false;
+    }
+  }
+  onNavItemClick() {
+    // Auto-close sidebar if on small screens
+    if (window.innerWidth <= 1024 && !this.collapsed) {
+      this.collapsed = true;
+    }
   }
 }

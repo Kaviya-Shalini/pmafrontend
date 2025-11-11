@@ -42,6 +42,7 @@
           🏷️ {{ memory.category }}
         </p>
         <p class="text-gray-200/90 text-sm leading-relaxed flex-grow line-clamp-4">{{ memory.description }}</p>
+        
         <p class="text-xs mt-4 text-gray-400">🕒 {{ memory.createdAt | date:'medium' }}</p>
 
         <div class="flex justify-end mt-4">
@@ -101,6 +102,14 @@
             🏷️ <span class="text-white font-medium">{{ selectedMemory.category }}</span>
           </p>
           <p class="text-gray-200/90 italic leading-relaxed">{{ selectedMemory.description }}</p>
+          <div *ngIf="selectedMemory.category?.toLowerCase() === 'medication'" 
+     class="mt-6 bg-white/10 p-5 rounded-2xl border border-white/20 shadow-inner">
+  <h3 class="text-lg font-semibold text-pink-300 mb-3">💊 Medication Details</h3>
+  <p><strong>Medication Name:</strong> {{ selectedMemory.medicationName || 'Not specified' }}</p>
+  <p><strong>Dosage:</strong> {{ selectedMemory.dosage || 'Not specified' }}</p>
+  <p><strong>Storage Location:</strong> {{ selectedMemory.storageLocation || 'Not specified' }}</p>
+</div>
+
         </div>
 
         <!-- 📎 Attachments -->

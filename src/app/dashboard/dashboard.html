@@ -1,7 +1,7 @@
 <div
   class="min-h-screen w-full flex flex-col 
             bg-gradient-to-tr from-indigo-950 via-purple-950 to-pink-950 
-            text-white relative overflow-hidden rounded-3xl">
+            text-white relative overflow-hidden rounded-xl">
 
   <!-- Floating Glows -->
   <div class="absolute top-20 left-10 w-[400px] h-[400px] bg-pink-500 opacity-30 blur-[160px] animate-pulse-slow"></div>
@@ -176,47 +176,69 @@
     </div>
   </section>
 
-  <!-- RECENT MEMORIES -->
-  <section class="px-8 pb-16 z-10">
-    <h2 class="text-2xl font-bold mb-6 drop-shadow-lg">🧾 Recent Memories</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-      <div *ngFor="let memory of recentMemories"
-        class="bg-gradient-to-br from-indigo-600 to-purple-600 p-5 rounded-2xl hover:scale-105 hover:shadow-2xl hover:shadow-pink-400/30 transition-all duration-300 cursor-pointer backdrop-blur-md border border-white/10 relative overflow-hidden">
+ <!-- 🧾 RECENT MEMORIES -->
+<!-- 🧾 RECENT MEMORIES -->
+<section class="px-6 md:px-8 pb-24 pt-8 z-10 w-full">
+  <h2
+    class="text-2xl md:text-3xl font-extrabold mb-8 md:mb-10 text-center tracking-wide text-yellow-300 drop-shadow-lg flex items-center justify-center gap-3">
+    <span>🧾</span> Recent Memories
+  </h2>
 
-        <div class="absolute inset-0 bg-white/5 blur-2xl opacity-20"></div>
+  <!-- ✅ Responsive Grid -->
+  <div
+    class="grid gap-6 sm:gap-8 justify-items-center transition-all duration-300
+           grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 
-        <div class="relative z-10">
-          <h3 class="font-bold text-xl text-white tracking-wide flex items-center gap-2">
-            <span class="text-yellow-300">✨</span>
-            <span class="bg-gradient-to-r from-yellow-200 to-yellow-400 bg-clip-text text-transparent">
-              {{ memory.title }}
-            </span>
+    <!-- 🧠 Memory Card -->
+    <div *ngFor="let memory of recentMemories"
+      class="relative bg-gradient-to-tr from-purple-900 via-purple-900 to-purple-900 
+             border border-white/10 rounded-3xl p-4 sm:p-5 
+             w-full max-w-[220px] sm:max-w-[240px] md:max-w-[260px] 
+             backdrop-blur-xl shadow-lg text-white 
+             hover:scale-105 hover:shadow-2xl hover:shadow-pink-400/40 
+             transition-all duration-300 overflow-hidden">
+
+      <!-- ✨ Glow Overlay -->
+      <div
+        class="absolute inset-0 bg-gradient-to-br from-pink-400/10 via-purple-400/10 to-transparent 
+               opacity-0 hover:opacity-30 blur-2xl transition-all duration-500">
+      </div>
+
+      <div class="relative z-10 flex flex-col justify-between h-full">
+        <div>
+          <!-- 🏷️ Title -->
+          <h3 class="font-bold text-base sm:text-lg truncate flex items-center gap-2">
+            <span class="text-yellow-300">✨</span> {{ memory.title }}
           </h3>
 
-          <p class="inline-flex items-center gap-2 text-sm font-medium px-3 py-1
-                    rounded-lg bg-indigo-600/30 border border-indigo-400/30 text-indigo-200 shadow-sm">
+          <!-- Category -->
+          <p
+            class="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-full
+                   bg-indigo-800/60 border border-indigo-400/20 text-indigo-100 shadow-sm mt-2">
             🏷️ {{ memory.category === 'other' ? memory.customCategory : memory.category }}
           </p>
 
-          <p class="text-sm leading-relaxed text-gray-200/90 bg-white/5 rounded-xl p-3 shadow-inner italic">
+          <!-- Description -->
+          <p
+            class="text-xs sm:text-sm leading-relaxed text-gray-100/90 bg-white/5 rounded-lg p-2 mt-3 italic 
+                   border border-white/10 shadow-inner line-clamp-3">
             {{ memory.description }}
           </p>
+        </div>
 
-          <p class="text-xs font-semibold text-gray-300 flex items-center gap-2">
+        <!-- Timestamp -->
+        <div class="flex justify-between items-center mt-4 text-[11px] sm:text-xs text-gray-300">
+          <p class="flex items-center gap-1 truncate">
             <span class="text-green-400">⏰</span>
-            {{ memory.createdAt | date:'mediumDate' }} • {{ memory.createdAt | date:'shortTime' }}
+            {{ memory.createdAt | date:'MMM d' }}
           </p>
-
-          <div class="flex justify-end mt-3">
-            <button
-              class="px-3 py-1 text-xs rounded-full bg-yellow-400 text-indigo-950 font-semibold hover:scale-110 transition-all duration-300">
-              View
-            </button>
-          </div>
         </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
+
+
   <div *ngIf="activeRoutineNotification" 
      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-sm p-4">
   <div class="bg-gray-900 border-4 border-indigo-500 rounded-xl shadow-2xl max-w-lg w-full p-8 text-center animate-pulse-slow">

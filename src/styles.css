@@ -1,2 +1,117 @@
 /* You can add global styles to this file, and also import other style files */
 @import "tailwindcss";
+/* ✅ GLOBAL RESPONSIVE STYLES — Enhances Responsiveness Without Breaking Theme */
+
+* {
+  transition: all 0.25s ease-in-out;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  background-color: rgb(255, 255, 255);
+   
+}
+
+body, .min-h-screen, .main-layout, .sidebar, .main-content {
+  border-radius: 0 !important;
+}
+
+
+.main-layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* .sidebar {
+  width: 250px;
+  min-width: 250px;
+  transition: transform 0.4s ease, width 0.4s ease;
+  z-index: 50;
+} */
+.sidebar.collapsed {
+  transform: translateX(-100%);
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+.sidebar {
+  height: 100vh;
+  min-height: 100vh;
+  overflow-y: auto; 
+}
+
+ .sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(79, 3, 79, 0.2);
+  border-radius: 10px;
+}
+::-webkit-scrollbar {
+  width: 0px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(98, 3, 85, 0.2);
+  border-radius: 10px;
+}
+.pointer-events-none {
+  pointer-events: none !important;
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    background: rgba(20, 0, 40, 0.95);
+    backdrop-filter: blur(12px);
+  }
+
+  .main-content {
+    width: 100%;
+    padding: 1rem;
+  }
+
+  .sidebar.collapsed {
+    transform: translateX(-100%);
+  }
+
+  .toggle-sidebar-btn {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    padding: 0.5rem 0.7rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .main-content {
+    padding: 0.75rem;
+  }
+
+  .chart-container, .card {
+    width: 100% !important;
+    margin-bottom: 1rem;
+  }
+
+  h1, h2, h3 {
+    font-size: 1rem;
+  }
+
+  button {
+    font-size: 14px !important;
+    padding: 6px 10px !important;
+  }
+}

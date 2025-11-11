@@ -1,6 +1,8 @@
-<div class="min-h-screen flex flex-col justify-center items-center 
-            bg-gradient-to-tr from-indigo-950 via-purple-900 to-pink-800 
-            text-white text-center p-6 overflow-hidden">
+<!-- 🌸 MAIN LANDING PAGE -->
+<div
+  class="min-h-screen flex flex-col justify-center items-center 
+           bg-gradient-to-tr from-indigo-950 via-purple-950 to-pink-950
+         text-white text-center p-6 overflow-hidden relative">
 
   <!-- Floating Background Glow -->
   <div class="absolute top-20 left-10 w-96 h-96 bg-pink-500 opacity-30 blur-[160px] animate-pulse-slow"></div>
@@ -25,7 +27,7 @@
                    shadow-xl hover:scale-110 transition-all duration-300">
       Get Started
     </button>
-    <button routerLink="/auth" 
+    <button routerLink="/learn-more"
             class="px-10 py-4 rounded-3xl border border-white font-bold text-lg 
                    shadow-xl hover:bg-white hover:text-indigo-900 hover:scale-110 transition-all duration-300">
       Learn More
@@ -64,3 +66,6 @@
     © 2025 Memory Care • Designed for Compassion 💜
   </footer>
 </div>
+
+<!-- 🌟 LEARN MORE PAGE -->
+<router-outlet></router-outlet>

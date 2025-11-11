@@ -3,6 +3,20 @@ import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
+interface Memory {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  filePath?: string;
+  voicePath?: string;
+  createdAt?: string;
+
+  // ✅ Add these new optional fields
+  medicationName?: string;
+  dosage?: string;
+  storageLocation?: string;
+}
 
 @Component({
   selector: 'app-memories',
@@ -12,9 +26,9 @@ import { ToastrService } from 'ngx-toastr';
   styleUrls: ['./memories.css'],
 })
 export class MemoriesComponent implements OnInit {
-  memories: any[] = [];
-  filteredMemories: any[] = [];
-  selectedMemory: any = null;
+  memories: Memory[] = [];
+  filteredMemories: Memory[] = [];
+  selectedMemory: Memory | null = null;
 
   searchTerm: string = '';
   page: number = 0;
